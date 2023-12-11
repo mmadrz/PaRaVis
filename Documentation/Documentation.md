@@ -160,17 +160,17 @@ The code begins by creating a user-friendly graphical interface for analyzing ve
 This widget is a set of buttons that allow users to choose between two modes: "unidimensional" mode (classical), and "multidimensional". Users can select one of the modes by clicking the corresponding button. 
 ### **3.1.2. Input(s) (Button Widget)**
 <a name="_heading=h.lnxbz9"></a>This is a button that users can click to open a file dialog for selecting input files. Depending on the chosen      mode, either a single file or multiple files can be selected. When clicked, the *select\_input* function is executed to handle file selection.
-1. ### **3.1.3. Output Path (Text Widget)**
+### **3.1.3. Output Path (Text Widget)**
 This widget provides a text input field where users can specify the path where the computation results will be saved. Users can manually type the desired output path.
 ### **3.1.4. Output Path (Button Widget)**
 This button allows users to select the output path by opening a file dialog. When clicked, the *select\_path* function is executed to handle the output path selection. It also updates the "output path" text widget.
 ### **3.1.5. Output Name (Text Widget)**
 This widget provides a text input field where users can specify the desired output file name. The default value is set to "Rao".
-**3.1.6. Input File(s) (TextArea Widget)**
+### **3.1.6. Input File(s) (TextArea Widget)**
 This widget displays the names of the selected input files. For "multidimensional" mode, multiple filenames are displayed. Its height is adjusted to accommodate the display of multiple names.
-**3.1.7. Window (BoundedIntText Widget)**
+### **3.1.7. Window (BoundedIntText Widget)**
 This widget provides a text input field where users can specify the size of the moving window for the computation. It only allows odd integer values. The default value is set to 3.
-**3.1.8. Na Tolerance (BoundedFloatText Widget)**
+### **3.1.8. Na Tolerance (BoundedFloatText Widget)**
 This widget provides a text input field where users can specify the parameter NA Tolerance for handling missing values (NaN values) during the computation. It only allows float values within the specified range (min: 0, max: 1). The default value is set to 0. If the percentage of missing values within a Moving window exceeds the specified tolerance threshold, the window's value will be designated as NA.      The default value is 0.0
 ### **3.1.9. Batch Size (BoundedIntText Widget)**
 This widget provides a text input field where users can specify the batch size for computation. It only allows integer values within the specified range (min: 10, max: 10000) with a step size of 10. The default value is set to 100. Batch processing involves breaking down the input data into smaller, manageable units known as batches. Each batch contains a subset of pixels from the input, and these batches are processed concurrently and independently. Each batch's window extends slightly beyond its boundaries(1/2 window size), allowing for the consideration of neighboring pixels. This approach ensures that pixels on batch edges are influenced by adjacent pixels.
@@ -220,7 +220,7 @@ Similarly, this feature controls the vertical positioning of Y-axis tick labels.
 This checkbox determines whether generated plots will be saved or not. When checked, the plots will be saved with the specified output filename in the chosen      output directory.
 ### **4.1.8. Select File (Dropdown Widget)**
 This dropdown displays a list of available files for selection. Users can select a file from the list. The selected file's name is used for various plot-related operations.
-1. ### <a name="_heading=h.z337ya"></a>**4.1.9. Color Map (Dropdown Widget)**
+### <a name="_heading=h.z337ya"></a>**4.1.9. Color Map (Dropdown Widget)**
 This dropdown displays a list of available colormaps. Users can choose a colormap that affects the color mapping of raster data in generated plots.
 ### **4.1.10. DPI (Dropdown Widget)**
 This dropdown displays a list of available DPI (dots per inch) options for plot resolution. Users can select the DPI value that determines the resolution of saved plots.
