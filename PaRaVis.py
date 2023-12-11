@@ -1210,7 +1210,9 @@ def plot_selected_files(b):
         output_filename = os.path.join(
             output_dir, f"{plot_type}_{output_file_name}.{file_format}"
         )
-        sns.set_palette(sns.palettes.SEABORN_PALETTES[color_palette])
+
+        # setting the palette base on user selection and files number
+        sns.set_palette(color_palette, len(selected_files))
 
         # Creating the figure
         plt.figure(figsize=(8, 6))
@@ -1220,20 +1222,20 @@ def plot_selected_files(b):
             if file_path:
                 with rasterio.open(file_path) as src:
                     data = normalize_data(src.read(1).flatten())
-                data_dict["Files"].extend([file_name] * len(data))
-                data_dict["Pixel Values"].extend(data)
-        data_df = pd.DataFrame(data_dict)
 
-        # Define the lower and upper bounds to identify outliers and filter them
-        IQR = data_df["Pixel Values"].quantile(0.75) - data_df["Pixel Values"].quantile(
-            0.25
-        )
-        lower_bound = data_df["Pixel Values"].quantile(0.25) - 1.5 * IQR
-        upper_bound = data_df["Pixel Values"].quantile(0.75) + 1.5 * IQR
-        data_df = data_df[
-            (data_df["Pixel Values"] >= lower_bound)
-            & (data_df["Pixel Values"] <= upper_bound)
-        ]
+                # Define the lower and upper bounds to identify outliers and filter them
+                IQR = pd.Series(data).quantile(0.75) - pd.Series(data).quantile(0.25)
+                lower_bound = pd.Series(data).quantile(0.25) - 1.5 * IQR
+                upper_bound = pd.Series(data).quantile(0.75) + 1.5 * IQR
+
+                # Update data_dict with filtered datasets
+                for value in data:
+                    if lower_bound <= value <= upper_bound:
+                        data_dict["Files"].append(file_name)
+                        data_dict["Pixel Values"].append(value)
+
+        # Create a pd for plots
+        data_df = pd.DataFrame(data_dict)
 
         # Different statistic plots
         if plot_type == "Box Plot":
@@ -1243,7 +1245,6 @@ def plot_selected_files(b):
                 y="Pixel Values",
                 inner="quartile",
                 bw=0.02,
-                palette=sns.color_palette(),
                 flierprops=dict(marker=""),
                 width=0.4,
                 dodge=0.2,
@@ -1252,7 +1253,6 @@ def plot_selected_files(b):
                 data=data_df,
                 x="Files",
                 y="Pixel Values",
-                palette=color_palette_dropdown.value,
                 flierprops=dict(marker=""),
                 width=0.5,
                 dodge=0.2,
@@ -1261,13 +1261,14 @@ def plot_selected_files(b):
                 data=data_df,
                 x="Files",
                 y="Pixel Values",
-                color="black",
+                palette=color_palette,
                 alpha=0.002,
                 jitter=0.35,
                 size=0.7,
                 marker="D",
-                palette=color_palette_dropdown.value,
+                zorder=0,  # Places it behind other plots
             )
+
         elif plot_type == "Histogram":
             sns.histplot(
                 data=data_df,
@@ -1276,7 +1277,6 @@ def plot_selected_files(b):
                 stat="density",
                 hue="Files",
                 common_norm=False,
-                palette=color_palette_dropdown.value,
             )
         elif plot_type == "KDE Plot":
             sns.kdeplot(
@@ -1303,12 +1303,12 @@ def plot_selected_files(b):
                 data=data_df,
                 x="Files",
                 y="Pixel Values",
-                color="black",
+                palette=color_palette,
                 alpha=0.002,
                 jitter=0.35,
                 size=0.7,
                 marker="D",
-                palette=color_palette_dropdown.value,
+                zorder=0,
             )
 
         # Customize the plot appearance
@@ -1955,10 +1955,8 @@ plot_types_dropdown = widgets.Dropdown(
     description="Plot Type:",
 )
 color_palette_dropdown = widgets.Dropdown(
-    options=list(sns.palettes.SEABORN_PALETTES.keys()),
-    value=list(sns.palettes.SEABORN_PALETTES.keys())[
-        7
-    ],  # Set the seven palette as default
+    options=list(plt.colormaps()),
+    value="rainbow",
     description="Color Palette:",
 )
 dp_dropdown = widgets.Dropdown(
