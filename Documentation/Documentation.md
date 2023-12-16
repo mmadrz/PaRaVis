@@ -39,7 +39,7 @@ The 'PaRaVis' is designed to streamline the extraction of Rao's Q index from div
 
 
 ## **PaRaVis interface**          
-![Interface](https://github.com/mmadrz/PaRaVis/assets/117746151/ed6b5bc1-7ff8-4f1d-bfa3-e25e250a28a2)
+![Interface](https://github.com/mmadrz/PaRaVis/assets/117746151/404519da-ebcd-4b7d-96fb-e0377c5a7645)
 
 
 
