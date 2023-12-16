@@ -1,0 +1,41 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        python-version: [3.8, 3.9, '3.10', 3.11]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python environment
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r environment.yml
+
+    - name: Install nbval and nbmake for testing
+      run: |
+        pip install pytest nbval nbmake
+
+    - name: Run Jupyter Notebook 'nbval' tests
+      run: |
+        python -Xfrozen_modules=off -m pytest --nbval-lax PaRaVis.ipynb
+
+    - name: Run Jupyter Notebook 'nbmake' tests
+      run: |
+        python -Xfrozen_modules=off -m pytest --nbmake PaRaVis.ipynb
