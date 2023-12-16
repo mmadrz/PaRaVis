@@ -4,7 +4,8 @@
 # In[ ]:
 
 
-## import os
+import os
+
 # List of libraries required by the script
 needed_libraries = [
     "tkinter",
@@ -45,9 +46,10 @@ else:
 # In[ ]:
 
 
+# NBVAL_SKIP
+# For changeing theme and notebook visualization
 try:
     import jupyterthemes
-
     themes_installed = True
 except ImportError:
     themes_installed = False
@@ -110,19 +112,22 @@ plt.rcParams[
     "font.family"
 ] = "DejaVu Sans"  # Use a font that supports Unicode characters
 
-# Create the main Tkinter window (desplay on top)
-root = tk.Tk()
-root.wm_attributes("-topmost", 1)
-root.eval("tk::PlaceWindow . center")
-root.withdraw()
+# Check if running in an interactive session
+if "CI" not in os.environ:
+    root = tk.Tk()  # Create the main Tkinter
+    root.wm_attributes("-topmost", 1)  # display on top
+    root.eval("tk::PlaceWindow . center")
+    root.withdraw()
+else:
+    root = None  # Set root to None in non-interactive mode/testing
 
 # Define a dic for datasets
 indices_dict = {}
 
-
 # Function to open and reproject GeoTIFF datasets
 def open_gd(bt):
     clear_output(wait=True)  # Clear the output area
+
     # Select GeoTIFF datasets using Tkinter
     root = Tk()
     root.withdraw()
@@ -155,6 +160,8 @@ def normalize(band):
 
 # For calculating desire indices
 def calculate_indices(b):
+
+    # Check if user selected any VI ro not
     if len(index_selection.value) == 0:
         print("Error: Please select one or more indices to campute.")
         return
@@ -357,6 +364,7 @@ def save_figure(button):
 
 # For saving Gtiff of selected VI files
 def save_indices(button):
+
     # Get user-selected inputs
     selected_dataset = dataset_dropdown_2.value
     selected_indices_with_cv = index_tosave.value
@@ -697,10 +705,14 @@ def get_memory_usage():
         return None
 
 
-# Get the sudo pass if the platform is linux
+# Check if the platform is Linux
 if platform.system() == "Linux":
-    sudo_password = input("Enter your sudo password: ")
-    clear_output(wait=True)  # Clear the output
+    # Check if running in interactive mode
+    if "CI" not in os.environ:
+        sudo_password = input("Enter your sudo password: ")
+    else:
+        # in case of non-interactive mode/tests
+        sudo_password = "sudopass"
 
 
 # Call rao function when a button is clicked
@@ -982,7 +994,6 @@ import multiprocessing
 num_cpu_cores = widgets.Dropdown(
     options=list(range(1, multiprocessing.cpu_count() + 1)),
     description="CPU workers:",
-    value=4,
 )
 
 # Get available memory

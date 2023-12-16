@@ -1,0 +1,14 @@
+- python=3.8
+- tkinter
+- python3-tk # Ubuntu package for tkinter support
+- ipywidgets
+- xarray
+- rioxarray
+- rasterio
+- numpy
+- spyndex
+- pandas
+- matplotlib
+- seaborn
+- ray
+- tqdm

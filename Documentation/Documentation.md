@@ -97,7 +97,7 @@ jupyter notebook
 - **xarray, rioxarray, and rasterio:** for performing various operations on raster files, facilitating data manipulation and analysis.
 - **NumPy and Pandas:** These libraries play a fundamental role in conducting precise numerical calculations, enabling robust data processing and analysis.
 - **spyndex:** Utilized for the computation of diverse vegetation indices.
-- ray: Employed for parallelizing Rao's Q calculation, optimizing processing efficiency for large datasets.
+- **ray:** Employed for parallelizing Rao's Q calculation, optimizing processing efficiency for large datasets.
 - **tqdm:** Integrated to provide real-time progress monitoring during Rao's Q calculations, enhancing user experience by displaying remaining processing time.
 - **Matplotlib and Seaborn:** These libraries are instrumental in crafting informative visualizations, aiding users in comprehending data and results effectively.
 
