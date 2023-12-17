@@ -1,5 +1,6 @@
 ![LOGO](https://github.com/mmadrz/PaRaVis/assets/117746151/7ce42d2a-020e-4d2e-95b8-33b1395b92dc)
 [![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://semver.org)
+[![DOI](https://zenodo.org/badge/728080000.svg)](https://zenodo.org/doi/10.5281/zenodo.10396919)
 [![Python Version](https://img.shields.io/badge/Python-3.8|3.9|3.10|3.11-yellow.svg)](https://www.python.org/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
