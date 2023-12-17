@@ -107,6 +107,7 @@ jupyter notebook
 # **2. First <a name="_toc152015907"></a>Section**     
 ## <a name="_toc152015908"></a>**2.1. Load Datasets (Button Widget)**
 This button allows users to open GeoTIFF datasets using a file dialog. When clicked, it triggers the *open\_geotiff\_datasets* function, which utilizes the *xr.open\_rasterio* method to open GeoTIFF files. The loaded datasets are stored in the *dataset\_dict* dictionary.
+- Note: the datasets will be reproject to WGS84 after opening. 
 ## <a name="_toc152015909"></a>**2.2. Bands Order**
 ### **2.2.1. Band Selection (Dropdowns Widgets):**
 Each dropdown corresponds to a specific band (e.g., Blue, Green     ) and allows users to choose the corresponding band number in the selected GeoTIFF file. The selected band numbers are stored and used in the index calculation process.

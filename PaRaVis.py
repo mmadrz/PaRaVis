@@ -147,9 +147,9 @@ def open_gd(bt):
         dataset = dataset.where(dataset != 0, np.nan)  # Replace 0 values with NaN
         bounds = dataset.rio.transform()
         dataset_dict[file_name] = {"dataset": dataset, "bounds": bounds}
-        print("GeoTIFF datasets loaded:", dataset_dict.keys())
-        display(widgets_row)  # Display the main container
-        return dataset_dict
+
+    print("GeoTIFF datasets loaded:", dataset_dict.keys())
+    display(widgets_row)  # Display the main container
 
 
 # Normalize the bands to the range [0, 1]
@@ -710,6 +710,7 @@ if platform.system() == "Linux":
     # Check if running in interactive mode
     if "CI" not in os.environ:
         sudo_password = input("Enter your sudo password: ")
+        clear_output(wait=True)  # Clear the output area
     else:
         # in case of non-interactive mode/tests
         sudo_password = "sudopass"
@@ -1336,9 +1337,9 @@ def plot_selected_files(b):
         plt.ylabel(
             "Rao's Value"
             if plot_type == "Box Plot"
-            else "Density"
-            if plot_type == "KDE Plot"
-            else "Rao's Value",
+            else "Rao's Value"
+            if plot_type == "Violin Plot"
+            else "Density",
             fontsize=12,
             fontweight="bold",
         )
@@ -1470,7 +1471,7 @@ def heatmap_files(b):
     file2_name, file2_path = selected_files[1], file_dict.get(selected_files[1], None)
 
     file_path = file_dict.get(selected_files, None)
-    window_size = int(window_size_slider.value)
+    window_size = window_size_slider.value
 
     output_filename = os.path.join(
         output_dir,
@@ -1989,7 +1990,7 @@ plot_selected_button.on_click(plot_selected_files)
 difference_files_button = widgets.Button(description="Difference Plot")
 difference_files_button.on_click(difference_files)
 window_size_slider = widgets.IntSlider(
-    value=600, min=1, max=5000, step=1, description="Grid Size:", readout_format=".1f"
+    value=600, min=1, max=5000, step=1, description="Grid Size:"
 )
 from ipywidgets import Layout, interact, widgets
 
