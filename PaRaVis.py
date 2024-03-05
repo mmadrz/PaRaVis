@@ -8,18 +8,19 @@ import os
 
 # List of libraries required by the script
 needed_libraries = [
-    "tkinter",
-    "ipywidgets",
-    "xarray",
-    "rioxarray",
-    "rasterio",
-    "numpy",
-    "spyndex",
-    "pandas",
-    "matplotlib",
-    "seaborn",
-    "ray",
-    "tqdm",
+    "jupyterthemes==0.20.0",
+    "ipywidgets==7.7.2",
+    "tk==0.1.0",
+    "xarray==2022.12.0",
+    "rioxarray==0.13.3",
+    "rasterio==1.3.4",
+    "numpy==1.26.2",
+    "spyndex==0.2.0",
+    "pandas==1.5.3",
+    "matplotlib==3.5.1",
+    "seaborn==0.12.2",
+    "ray==2.7.0",
+    "tqdm==4.64.1",
 ]
 
 # List to store missing libraries
@@ -627,11 +628,9 @@ save_button_2.on_click(save_indices)
 def update_input(mode_value):
     if mode_value == "unidimensional":
         input_text.description = "Input File:"
-        input_text.rows = 1  # Limit selection to one file
         input_button.description = "Input"
     else:
         input_text.description = "Input Files:"
-        input_text.rows = len(index_names)  # Display more rows for multi-file selection
         input_button.description = "Inputs"
 
 
@@ -1482,6 +1481,8 @@ def heatmap_files(b):
             transform = src.transform  # Get the transform object for one of the files
             data = normalize_data(subtraction_data)
             nrows, ncols = data.shape
+            # Get the pixel size in the X (same as Y as we Reproject inputs)
+            pixel_size_x = transform.a
 
             # Extract latitude and longitude from the georeferencing information
             lat, long = transform * (
@@ -1532,14 +1533,13 @@ def heatmap_files(b):
             grid_cell_width = x[1] - x[0]
             grid_cell_height = y[1] - y[0]
 
-            # Calculate font size based on the number of grid lines
+            # Calculate font size based on the number of grid lines and resolution
             min_grid_line_count = min(num_x_lines, num_y_lines)
             font_size = (
-                100000
-                * np.mean([abs(grid_cell_width), abs(grid_cell_height)])
-                * 60
-                / min_grid_line_count
-            )  # Adjust 60
+                np.mean([abs(grid_cell_width), abs(grid_cell_height)])
+                * 80
+                / (min_grid_line_count * pixel_size_x)
+            )  # Adjust 80
 
             # Display grid means as text with adjusted font size
             for i in range(grid_size_rows):
@@ -1990,7 +1990,7 @@ plot_selected_button.on_click(plot_selected_files)
 difference_files_button = widgets.Button(description="Difference Plot")
 difference_files_button.on_click(difference_files)
 window_size_slider = widgets.IntSlider(
-    value=600, min=1, max=5000, step=1, description="Grid Size:"
+    value=30, min=1, max=150, step=1, description="Grid Size:"
 )
 from ipywidgets import Layout, interact, widgets
 
