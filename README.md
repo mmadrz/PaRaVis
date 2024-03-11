@@ -41,9 +41,9 @@ sudo apt-get install python3-tk
 ```
 <br/>
 
-In Jupyter Notebook or Jupyter Lab you can import different modules of _PaRaVis_ as follows:
-
 **Note:** If you are using Jupyter Notebook Version 7 and above, you might encounter compatibility issues, as it has undergone changes that break backward compatibility. In such cases, it is recommended to use [nbclassic](https://github.com/jupyter/nbclassic) instead of Jupyter Notebook.
+
+In Jupyter Notebook or Jupyter Lab you can import different modules of _PaRaVis_ as follows:
 
 |Module| Import Statement| Description|
 |------------------------------|---------------------------------|-------------------------------------|
