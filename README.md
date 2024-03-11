@@ -43,6 +43,8 @@ sudo apt-get install python3-tk
 
 In Jupyter Notebook or Jupyter Lab you can import different modules of _PaRaVis_ as follows:
 
+**Note:** If you are using Jupyter Notebook Version 7 and above, you might encounter compatibility issues, as it has undergone changes that break backward compatibility. In such cases, it is recommended to use [nbclassic](https://github.com/jupyter/nbclassic) instead of Jupyter Notebook.
+
 |Module| Import Statement| Description|
 |------------------------------|---------------------------------|-------------------------------------|
 | Vegetation Index Analysis| ```from paravis import Indices```| Calculate and visually represent vegetation indices.|
