@@ -35,13 +35,15 @@ sudo apt-get install python3-tk
 ```
 <br/>
 
-**Note:** To customize theme and cell size for a better experience within Jupyter Notebook, use the following magic command from your jupyter notebook, and remember to refresh for changes to take effect (use F5):
+> [!NOTE]
+> To customize theme and cell size for a better experience within Jupyter Notebook, use the following magic command from your jupyter notebook, and remember to refresh for changes to take effect (use F5):
 ```bash
 !jt -t grade3 -cellw 100% -N -T -kl
 ```
 <br/>
 
-**Note:** If you are using Jupyter Notebook Version 7 and above, you might encounter compatibility issues, as it has undergone changes that break backward compatibility. In such cases, it is recommended to use [nbclassic](https://github.com/jupyter/nbclassic) instead of Jupyter Notebook.
+> [!IMPORTANT]
+> If you are using Jupyter Notebook Version 7 and above, you might encounter compatibility issues, as it has undergone changes that break backward compatibility. In such cases, it is recommended to use [nbclassic](https://github.com/jupyter/nbclassic) instead of Jupyter Notebook.
 
 In Jupyter Notebook or Jupyter Lab you can import different modules of _PaRaVis_ as follows:
 
