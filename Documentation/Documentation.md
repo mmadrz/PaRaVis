@@ -179,20 +179,34 @@ This widget provides a text input field where users can specify the batch size f
 This widget displays a dropdown menu containing a list of available CPU core counts. users are allowed to choose the desired number of CPU cores for parallel computation. the input data is divided into batches, Different batch tasks are assigned to different CPU cores simultaneously, enabling multiple batches to be processed in parallel.
 ### **3.1.11. Memory (GB) (Slider Widget)**
 Utilizing this slider, users have the capability to designate the desired amount of memory that Ray will employ for parallel computation during initialization. The slider's upper limit is intelligently capped at 85% of the available platform memory, effectively averting system interruptions stemming from excessive memory consumption. For Linux users, executing this section will prompt you to provide your sudo password. This password is required to remount the */dev/shm* directory with the maximum size as configured by the Memory slider.
+
 ### **3.1.12. Distance (ToggleButtons Widget)**
 This widget provides a set of toggle buttons for selecting different distance metrics (e.g.,Euclidean, Manhattan, etc.). Users can choose one of the distance metrics by clicking its button:
+
    - **Euclidean Distance**
-The Euclidean distance is the straight-line distance between two points in Euclidean space. It calculates the square root of the sum of squared differences between corresponding elements in the vectors.
+The Euclidean distance is the straight-line distance between two points in Euclidean space. It calculates the square root of the sum of squared differences between corresponding elements in the vectors:
+  <div align="center">d(x,y) = √(∑(x_i - y_i)²)</div>
+  
    - **Manhattan Distance**
-The Manhattan distance, also known as the L1 distance or taxicab distance, is the sum of the absolute differences between corresponding elements in the vectors.
+The Manhattan distance, also known as the L1 distance or taxicab distance, is the sum of the absolute differences between corresponding elements in the vectors:
+  <div align="center">d(x,y) = ∑|x_i - y_i|</div>
+
    - **Chebyshev Distance**
-The Chebyshev distance, also known as the chessboard distance, calculates the maximum absolute difference between corresponding elements in the vectors.
+The Chebyshev distance, also known as the chessboard distance, calculates the maximum absolute difference between corresponding elements in the vectors:
+  <div align="center">d(x,y) = max_i |x_i - y_i|</div>
+
    - **Jaccard Distance**
-The Jaccard distance measures dissimilarity between two vectors with numerical elements. It computes the sum of ratios of minimum to maximum values for corresponding pairs in the vectors, subtracted from 1. The method is inspired by the Jaccard similarity coefficient used for sets.
+The Jaccard distance measures dissimilarity between two vectors with numerical elements. It computes the sum of ratios of minimum to maximum values for corresponding pairs in the vectors, subtracted from 1. The method is inspired by the Jaccard similarity coefficient used for sets:
+  <div align="center">d(x,y) = ∑ (1 -(min(x_i , y_i) / max(x_i , y_i)))</div>
+
    - **Canberra Distance**
-The Canberra distance calculates the sum of normalized absolute differences between corresponding elements in the vectors.
+The Canberra distance calculates the sum of normalized absolute differences between corresponding elements in the vectors:
+  <div align="center">d(x,y) = ∑(|x_i - y_i| / (|x_i| + |y_i|))</div>
+
    - **Minkowski Distance**
-The Minkowski distance is a generalized distance metric that includes both Euclidean and Manhattan distances as special cases. When "degree" is 2, it's the Euclidean distance; when "degree" is 1, it's the Manhattan distance. For p>2, the Minkowski distance will tend to emphasize larger differences between vector elements, as higher powers of the absolute differences will be involved. 
+The Minkowski distance is a generalized distance metric that includes both Euclidean and Manhattan distances as special cases. When "degree" is 2, it's the Euclidean distance; when "degree" is 1, it's the Manhattan distance. For p>2, the Minkowski distance will tend to emphasize larger differences between vector elements, as higher powers of the absolute differences will be involved:
+  <div align="center">d(x,y) = (∑(|x_i - y_i|^p))^(1/p)</div>
+
 ### **3.1.13. Degree (BoundedIntText Widget)**
 This widget provides a text input field where users can specify the parameter degree which will be used only for the Minkowski distance calculation. It only allows integer values within the specified range (min: 2, max: 200). The default value is set to 2.
 ### **3.1.14. Run (Button Widget)**
