@@ -57,3 +57,8 @@ In Jupyter Notebook or Jupyter Lab you can import different modules of _PaRaVis_
 __For more information about the _PaRaVis_ tool, please refer to the [__Documentation__](Documentation/Documentation.md).__
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Citation
+
+> Fathi, M. R., Latifi, H., Gholizadeh, H., & Khare, S. (2024). PaRaVis: An automatic Python graphical package for ensemble analysis of plant beta diversity using remote sensing proxies. **_Ecological Informatics_**, 102739. [https://doi.org/10.1016/j.ecoinf.2024.102739](https://doi.org/10.1016/j.ecoinf.2024.102739)
+
