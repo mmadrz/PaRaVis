@@ -1,0 +1,103 @@
+name: Coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  coverage:
+    name: Coverage report
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies (for Qt)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            libegl1 libgl1 \
+            libxcb-cursor0 libxkbcommon-x11-0 libxkbcommon0 \
+            libxcb-icccm4 libxcb-image0 libxcb-xkb1 \
+            libxcb-keysyms1 libxcb-randr0 \
+            libxcb-render-util0 libxcb-shape0 \
+            libxcb-xfixes0 libxcb-xinerama0 \
+            libxcb-xinput0
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install package (no extras)
+        run: pip install -e .
+
+      - name: Install test & GUI dependencies
+        run: |
+          pip install --retries 3 \
+            PySide6 pytest pytest-cov pytest-qt psutil
+
+      - name: Run GUI tests (isolated, without coverage tracking)
+        env:
+          QT_QPA_PLATFORM: "offscreen"
+        run: |
+          python scripts/run_tests_isolated.py --no-cov -- --tb=short
+
+      - name: Run core tests with coverage
+        env:
+          QT_QPA_PLATFORM: "offscreen"
+        run: |
+          coverage run --source=paravis -m pytest tests/ -v --tb=short \
+            -p no:cupyx \
+            --ignore=tests/test_main_window.py \
+            --ignore=tests/test_gui_components.py \
+            --ignore=tests/test_gui_dialogs.py \
+            --ignore=tests/test_gui_models.py
+
+      - name: Generate coverage reports
+        run: |
+          coverage xml -o coverage.xml
+          coverage json -o coverage.json
+          coverage html -d htmlcov
+
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: htmlcov/
+          retention-days: 7
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+      - name: Comment PR with coverage
+        if: github.event_name == 'pull_request'
+        uses: MishaKav/pytest-coverage-comment@main
+        with:
+          pytest-xml-coverage-path: coverage.xml
+          title: "Coverage Report"
+          badge-title: Coverage
+          hide-badge: false
+          hide-report: false
+          create-new-comment: false
+          hide-comment: false
+          report-only-changed-files: true
+          remove-link-from-badge: false
+          unique-id-for-comment: paravis-coverage

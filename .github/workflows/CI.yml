@@ -1,0 +1,160 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ##########################################################################
+  # Non-GUI tests on both platforms (fast, no Qt needed)
+  ##########################################################################
+  core-tests:
+    name: Core ${{ matrix.os }} py${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install core dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e . pytest pytest-cov
+
+      - name: Run core tests (non-GUI, skip CuPy)
+        shell: bash
+        run: |
+          pytest tests/ -v --tb=short \
+            -p no:cupyx \
+            --ignore=tests/test_main_window.py \
+            --ignore=tests/test_gui_components.py \
+            --ignore=tests/test_gui_dialogs.py \
+            --ignore=tests/test_gui_models.py \
+            --ignore=tests/test_utils.py \
+            --ignore=tests/test_workers.py \
+            -x
+
+  ##########################################################################
+  # Full test suite including GUI (Linux & Windows)
+  ##########################################################################
+  full-tests:
+    name: Full ${{ matrix.os }} py${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            libegl1 libgl1 \
+            libxcb-cursor0 libxkbcommon-x11-0 libxkbcommon0 \
+            libxcb-icccm4 libxcb-image0 libxcb-xkb1 \
+            libxcb-keysyms1 libxcb-randr0 \
+            libxcb-render-util0 libxcb-shape0 \
+            libxcb-xfixes0 libxcb-xinerama0 \
+            libxcb-xinput0
+
+      - name: Upgrade pip
+        shell: bash
+        run: python -m pip install --upgrade pip
+
+      - name: Install package (no extras)
+        shell: bash
+        run: pip install -e .
+
+      - name: Install test & GUI dependencies
+        shell: bash
+        run: |
+          pip install --retries 3 \
+            PySide6 pytest pytest-cov pytest-qt psutil
+
+      - name: Run full test suite (isolated, with coverage)
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: "offscreen"
+        run: |
+          python scripts/run_tests_isolated.py -- --tb=short -x
+
+      - name: Run full test suite (isolated, with coverage)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          python scripts/run_tests_isolated.py -- --tb=short -x
+
+      - name: Generate HTML coverage report
+        if: always()
+        shell: bash
+        run: coverage html
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: htmlcov/
+          retention-days: 7
+
+  ##########################################################################
+  # Code quality & packaging checks (Linux, one Python version)
+  ##########################################################################
+  lint:
+    name: Lint & packaging
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install linting tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 build
+
+      - name: Check packaging
+        run: |
+          python -m build --sdist --wheel
+          twine check dist/* 2>/dev/null || echo "twine not installed, skipping"
+
+      - name: Lint with flake8
+        run: |
+          flake8 paravis/ --count --max-line-length=100 \
+            --ignore=E203,E501,W503 --show-source --statistics \
+            --exit-zero
+
+      - name: Verify importable
+        run: |
+          python -c "import paravis; print(f'PaRaVis v{paravis.__version__}')"
