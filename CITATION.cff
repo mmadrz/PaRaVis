@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+message: "If you use PaRaVis in your research, please cite it as below."
+title: "PaRaVis: Parallel Rao's Q Visualization and Analysis"
+version: 2.0.0
+date-released: 2024
+authors:
+  - family-names: "Fathi"
+    given-names: "Mohammadreza"
+    orcid: "https://orcid.org/0009-0008-3766-2987"
+license: "CC-BY-4.0"
+repository-code: "https://github.com/mmadrz/paravis"
+preferred-citation:
+  type: article
+  authors:
+    - family-names: "Fathi"
+      given-names: "Mohammad Reza"
+    - family-names: "Latifi"
+      given-names: "Hooman"
+    - family-names: "Gholizadeh"
+      given-names: "Hamed"
+    - family-names: "Khare"
+      given-names: "Siddhartha"
+  title: "PaRaVis: An automatic Python graphical package for ensemble analysis of plant beta diversity using remote sensing proxies"
+  journal: "Ecological Informatics"
+  volume: 82
+  pages: "102739"
+  year: 2024
+  doi: "10.1016/j.ecoinf.2024.102739"
+  url: "https://www.sciencedirect.com/science/article/pii/S1574954124002814"
+keywords:
+  - "remote sensing"
+  - "spectral indices"
+  - "Rao's Q"
+  - "biodiversity"
+  - "raster analysis"
+  - "GPU computing"

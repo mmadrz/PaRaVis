@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta:__legacy__"
+
+[project]
+name = "paravis"
+version = "2.0.0"
+description = "Parallel Rao's Q Visualization and Analysis — Spectral indices, Rao's Q diversity, raster visualization"
+readme = "README.md"
+license = {text = "CC-BY-4.0"}
+authors = [
+    {name = "Mohammadreza Fathi"}
+]
+requires-python = ">=3.9"
+
+keywords = [
+    "remote sensing",
+    "spectral indices",
+    "spectral variation hypothesis",
+    "spectral diversity",
+    "Rao's Q",
+    "raster visualization",
+    "CPU/GPU computing",
+    "GUI"
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Creative Commons Attribution 4.0 International",
+    "License :: Other/Proprietary License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "numpy>=1.21",
+    "rasterio>=1.3",
+    "spyndex>=0.4",
+    "matplotlib>=3.5",
+    "seaborn>=0.12",
+    "psutil>=5.0",
+]
+
+[project.optional-dependencies]
+gui = ["PySide6>=6.5"]
+gpu = ["cupy>=12.0"]
+dev = ["pytest>=7.0", "pytest-qt>=4.0", "pytest-cov>=4.0"]
+
+[project.urls]
+Homepage = "https://github.com/mmadrz/paravis"
+Documentation = "https://github.com/mmadrz/paravis/docs/guide"
+Source = "https://github.com/mmadrz/paravis"
+BugTracker = "https://github.com/mmadrz/paravis/issues"
+
+[project.gui-scripts]
+paravis = "paravis.gui.app:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["paravis*"]
+
+[tool.setuptools.package-data]
+"paravis.gui.theme" = ["*.qss"]
+"*" = ["*.png", "*.md"]
