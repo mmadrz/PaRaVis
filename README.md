@@ -12,7 +12,7 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/paravis?style=flat-square&logo=python)](https://pypi.org/project/paravis/)
 [![License](https://img.shields.io/pypi/l/paravis?style=flat-square)](https://github.com/mmadrz/paravis/blob/main/LICENSE)
 [![Tests](https://img.shields.io/badge/tests-369%20passed-success?style=flat-square)](https://github.com/mmadrz/paravis/actions)
-[![Coverage](https://codecov.io/gh/mmadrz/PaRaVis1/branch/main/graph/badge.svg)](https://codecov.io/gh/mmadrz/PaRaVis1)
+[![Coverage](https://codecov.io/gh/mmadrz/PaRaVis/branch/main/graph/badge.svg)](https://codecov.io/gh/mmadrz/PaRaVis)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20windows%20%7C%20macOS-lightgrey?style=flat-square)](https://github.com/mmadrz/paravis)
 
 </div>
