@@ -441,6 +441,20 @@ class TestRaoQEdgeCases:
         assert np.all(np.isnan(result))  # All padded
 
 
+class TestInitWorker:
+    """Tests for the _init_worker helper function."""
+
+    def test_init_worker_sets_global(self):
+        """_init_worker should set the module-level _shared_raster_data."""
+        import paravis.core.raoq.engine as _eng
+        data = np.random.rand(1, 10, 10).astype(np.float32)
+        # Reset global first
+        _eng._shared_raster_data = None
+        _eng._init_worker(data)
+        assert _eng._shared_raster_data is data
+        _eng._shared_raster_data = None
+
+
 class TestProcessChunkDirect:
     """Direct tests for the _process_chunk helper function."""
 

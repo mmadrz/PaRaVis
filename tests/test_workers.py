@@ -138,6 +138,32 @@ class TestIndexComputeWorker:
         # Should have emitted an error since we stopped
         assert len(error_results) > 0
 
+    def test_run_raises_exception(self, qapp):
+        """Worker should emit error when computation raises."""
+        from unittest.mock import patch
+        from paravis.workers.index_worker import IndexComputeWorker
+        data = np.zeros((6, 10, 10), dtype=np.float32)
+        data[3] = 0.2
+        data[4] = 0.8
+        mapping = {4: "R", 5: "N"}
+
+        worker = IndexComputeWorker(data, mapping, ["NDVI"])
+        error_results = []
+
+        def capture_error(msg):
+            error_results.append(msg)
+
+        worker.error.connect(capture_error)
+
+        with patch("paravis.workers.index_worker._compute_indices",
+                   side_effect=ValueError("computation failed")):
+            worker.start()
+            worker.wait(5000)
+            QApplication.processEvents()
+
+        assert len(error_results) > 0
+        assert "computation failed" in error_results[0]
+
 
 class TestRaoQWorker:
     def test_run_cpu(self, qapp, tmp_path):
@@ -189,6 +215,36 @@ class TestRaoQWorker:
         success, msg = finished_results[0]
         assert success, f"Worker failed: {msg}"
         assert os.path.exists(output_path), "Output file was not created"
+
+    def test_run_bad_file(self, qapp):
+        """Worker should emit error with non-existent raster file."""
+        from paravis.workers.raoq_worker import RaoQWorker
+
+        finished_results = []
+
+        def on_finished(success, msg):
+            finished_results.append((success, msg))
+
+        worker = RaoQWorker(
+            raster_paths=["/nonexistent/file.tif"],
+            output_path="/nonexistent/output.tif",
+            distance_m="euclidean",
+            window=3,
+            na_tolerance=1.0,
+            block_size=1024,
+            num_workers=1,
+            p_minkowski=2,
+            use_gpu=False,
+            simplify=2,
+        )
+        worker.finished_signal.connect(on_finished)
+        worker.start()
+        worker.wait(10000)
+        QApplication.processEvents()
+
+        assert len(finished_results) > 0
+        # Should have failed
+        assert finished_results[0][0] is False
 
 
 class TestBaseWorkerSignals:

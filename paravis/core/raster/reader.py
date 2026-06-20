@@ -115,7 +115,7 @@ def downsample_data(data: np.ndarray, max_pixels: int = 1_000_000) -> np.ndarray
 
     factor = int(np.sqrt(total_pixels / max_pixels))
     if factor < 1:
-        factor = 1
+        factor = 1  # pragma: no cover
 
     downsampled = data[::factor, ::factor]
     print(

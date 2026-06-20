@@ -422,6 +422,21 @@ class TestSystemProfilerGPUDetails:
                 assert info["backend"] == "CuPy"
                 assert info["name"] is None
 
+    @pytest.mark.skipif(not HAVE_CUPY, reason="CuPy not installed")
+    def test_get_gpu_info_cupy_runtime_version_exception(self):
+        """CuPy GPU info when runtimeGetVersion raises (covers inner except)."""
+        from paravis.utils.system import SystemProfiler
+        with patch("paravis.core.raoq.gpu.GPU_AVAILABLE", True), \
+             patch("paravis.core.raoq.gpu.GPU_BACKEND", "CuPy"), \
+             patch("paravis.core.raoq.gpu.CUSTOM_KERNEL_AVAILABLE", True):
+            with patch("cupy.cuda.runtime.runtimeGetVersion",
+                       side_effect=Exception("version error")):
+                info = SystemProfiler.get_gpu_info()
+                assert info["available"] is True
+                assert info["backend"] == "CuPy"
+                # cuda_version should be None since we raised
+                assert info["cuda_version"] is None
+
     def test_get_gpu_info_numba_cuda_success(self):
         """Numba CUDA GPU info with mocked device."""
         from paravis.utils.system import SystemProfiler
@@ -483,3 +498,46 @@ class TestSystemProfilerGPUDetails:
             profiler.print_report()
             captured = capsys.readouterr()
             assert "GPU" in captured.out
+
+    def test_summary_string_no_gpu(self):
+        """summary_string when GPU is not available (covers 'GPU: Not available' line)."""
+        from paravis.utils.system import SystemProfiler
+        with patch("paravis.core.raoq.gpu.GPU_AVAILABLE", False), \
+             patch("paravis.core.raoq.gpu.GPU_BACKEND", None), \
+             patch("paravis.core.raoq.gpu.CUSTOM_KERNEL_AVAILABLE", False):
+            summary = SystemProfiler.summary_string()
+            assert "GPU: Not available" in summary
+
+    def test_get_ram_info_import_error(self):
+        """get_ram_info when psutil is not installed (covers ImportError branch)."""
+        from paravis.utils.system import SystemProfiler
+        with patch.dict('sys.modules', {'psutil': None}):
+            import importlib
+            import paravis.utils.system
+            importlib.reload(paravis.utils.system)
+            from paravis.utils.system import SystemProfiler
+            info = SystemProfiler.get_ram_info()
+            assert info["total_gb"] == 0
+            assert info["available_gb"] == 0
+            assert info["percent_used"] == 0
+
+
+# ---------------------------------------------------------------------------
+# Package-level __init__ tests (lazy import via __getattr__)
+# ---------------------------------------------------------------------------
+
+
+class TestUtilsPackage:
+    """Tests for paravis.utils.__init__ lazy import mechanism."""
+
+    def test_lazy_import_app_settings(self):
+        """AppSettings should be importable via __getattr__."""
+        from paravis.utils import AppSettings
+        from paravis.utils.settings import AppSettings as RealAppSettings
+        assert AppSettings is RealAppSettings
+
+    def test_attr_error(self):
+        """Accessing non-existent attr should raise AttributeError."""
+        import paravis.utils
+        with pytest.raises(AttributeError):
+            paravis.utils.nonexistent_attr

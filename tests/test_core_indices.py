@@ -39,6 +39,41 @@ class TestIsIndexComputable:
     def test_unknown_index(self):
         assert is_index_computable("NONEXISTENT", {}, {}) is False
 
+    def test_constant_with_none_override(self):
+        """A required constant with override=None should check spyndex default.
+
+        If spyndex also has default=None, is_index_computable returns False.
+        """
+        import spyndex
+        # Find an index that requires a constant
+        const_name = None
+        for name in spyndex.indices:
+            idx = spyndex.indices[name]
+            if getattr(idx, "constants", []):
+                const_name = getattr(idx, "constants", [])[0]
+                break
+
+        if const_name is not None:
+            # Override the constant with None — should fall through to spyndex
+            result = is_index_computable("SAVI", {const_name: None}, {4: "R", 5: "N"})
+            # If spyndex has a non-None default, SAVI is computable
+            # If spyndex has None default, it's not
+            spyndex_const = spyndex.constants.get(const_name)
+            if spyndex_const is not None and spyndex_const.default is not None:
+                assert result is True
+            else:
+                assert result is False
+
+    def test_constant_not_in_override_with_spyndex_none_default(self):
+        """When a required constant is not provided and spyndex default
+        is None, is_index_computable should return False."""
+        import spyndex
+        # spyndex.constants is a frozen Box; patch the module-level reference
+        mock_consts = {"L": type('MockConst', (), {'default': None})()}
+        with patch("spyndex.constants", mock_consts):
+            result = is_index_computable("SAVI", {}, {4: "R", 5: "N"})
+            assert result is False
+
 
 class TestComputeIndex:
     def test_ndvi_output_shape(self, sample_raster_3d, landsat_mapping):

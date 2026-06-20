@@ -315,6 +315,36 @@ class TestComputeRaoQEdgeCases:
             assert result.shape == (16, 16)
 
 
+class TestComputeIndicesBranches:
+    """Test uncovered branches in compute_indices."""
+
+    def test_default_band_mapping(self):
+        """compute_indices with band_mapping=None should use default."""
+        mock_data = np.zeros((5, 10, 10), dtype=np.float32)
+        mock_data[3] = 0.2
+        mock_data[4] = 0.8
+
+        with patch("paravis.api.indices.read_raster") as mock_read:
+            mock_read.return_value = (mock_data, None, None)
+            from paravis.api.indices import compute_indices
+            # Don't pass band_mapping — triggers default (line 59)
+            results = compute_indices("dummy.tif", indices=["NDVI"])
+            assert "NDVI" in results
+
+    def test_2d_input(self):
+        """compute_indices with 2D raster should expand to 3D."""
+        mock_data_2d = np.random.rand(10, 10).astype(np.float32)
+
+        with patch("paravis.api.indices.read_raster") as mock_read:
+            mock_read.return_value = (mock_data_2d, None, None)
+            from paravis.api.indices import compute_indices
+            # NDVI can't be computed from single-band data, but the
+            # 2D->3D expansion (line 66) is exercised without error
+            results = compute_indices("dummy.tif", indices=["NDVI"],
+                                      band_mapping={4: "R", 5: "N"})
+            assert isinstance(results, dict)
+
+
 class TestComputeIndicesAllNone:
     """Test compute_indices with indices=None and no computable indices."""
 
