@@ -89,7 +89,15 @@ $$Q = \sum_{i=1}^{N} \sum_{j=1}^{N} d_{ij} \cdot p_i \cdot p_j$$
 
 Where $N$ = total number of pixels within a window, $p_i$ and $p_j$ = relative abundances for pixel $i$ and $j$, and $d_{ij}$ = pairwise spectral distance between pixel $i$ and $j$.
 
-The `simplify` parameter controls **input truncation** precision before species identification — higher precision means more distinct species detected, yielding a more detailed diversity map but at greater computational cost.
+Instead of comparing every pair of pixels directly, PaRaVis first groups pixels with **identical spectral profiles**, then computes distances between unique profiles weighted by how many pixels share each profile. This is far more efficient — a 15×15 window (225 pixels) may have only 10 unique spectral profiles, requiring just $\binom{10}{2}=45$ distance calculations instead of $\binom{225}{2}=25{,}200$.
+
+### The `simplify` Parameter
+
+The **`simplify`** parameter (range **0–6**, default **2**) controls how strictly pixels must match to be considered spectrally identical. Before grouping, all pixel values are **truncated** to the given number of decimal places — so `0.1234567` becomes `0.12` at `simplify=2`. Two pixels are only grouped together if their spectral profiles match exactly after truncation.
+
+- **Lower values** (0–1): fewer distinct spectral profiles per window, faster computation, coarser diversity map
+- **Default (2)**: good balance for most analyses
+- **Higher values** (3–6): more spectrally distinct profiles detected, richer detail, slower computation
 
 Six distance metrics are available: Euclidean, Manhattan, Chebyshev, Minkowski (tunable $p$), Canberra, and Bray-Curtis. All work on every backend.
 

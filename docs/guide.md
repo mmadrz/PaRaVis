@@ -54,59 +54,41 @@ PaRaVis provides a complete environment for remote-sensing raster analysis:
 
 ### What Is Rao's Q?
 
-Rao's Quadratic Entropy (also called Rao's Q or Rao's diversity) is a measure of spectral or functional diversity developed by C. R. Rao. Unlike simple spectral indices (e.g., NDVI) which measure a single property at each pixel, Rao's Q quantifies **heterogeneity within a local neighbourhood** — how spectrally diverse the pixels inside a moving window are.
+Rao's Quadratic Entropy (also called Rao's Q) is a measure of **spectral variation within a local neighbourhood**. Unlike simple spectral indices (e.g., NDVI) which measure a single value at each pixel, Rao's Q quantifies how much pixel values vary inside a moving window — capturing spectral heterogeneity across the image.
 
 This makes it valuable for:
-- **Ecology**: Mapping habitat heterogeneity, ecotones, and biodiversity.
-- **Remote sensing**: Detecting sub-pixel mixing, urban complexity, and vegetation structural diversity.
-- **Geology**: Characterising mineralogical variability.
-- **Change detection**: Identifying areas where diversity changes over time.
+- **Remote sensing**: Detecting sub-pixel mixing, urban complexity, and vegetation structural variation.
+- **Change detection**: Identifying areas where spectral heterogeneity changes over time.
+- **Land cover analysis**: Distinguishing homogeneous areas (e.g., water, bare soil) from heterogeneous ones (e.g., urban edges, ecotones).
 
-### The Species-Abundance Formula
+### How Rao's Q Works
 
-The core insight: **identical spectral pixels are treated as the same "species"**. Rather than computing pairwise distances between every pixel (which would be O(n²) per window), PaRaVis first identifies unique spectral profiles, counts their frequencies, and then computes distances only between unique species.
-
-For a window of $N$ pixels:
-
-$$Q = \sum_{i=1}^{N} \sum_{j=1}^{N} d_{ij} \cdot p_i \cdot p_j$$
-
-Where:
-
-| Symbol | Meaning |
-|--------|---------|
-| $N$ | Total number of pixels within a window |
-| $d_{ij}$ | Pairwise spectral distance between pixel $i$ and $j$ (using chosen metric) |
-| $p_i, p_j$ | Relative abundances for pixel $i$ and $j$ |
-
-Because $d_{ij} = d_{ji}$, the **full double sum** is equivalent to the **upper-triangular form**:
-
-$$Q = 2 \sum_{i < j} d_{ij} \cdot p_i \cdot p_j$$
-
-Both forms produce identical results in PaRaVis — the engine uses the full double sum for clarity, while the CUDA kernel uses the upper-triangular form for efficiency.
-
-### Why Species-Abundance?
-
-1. **Performance**: If a 15×15 window (225 pixels) has only 10 unique spectral profiles, we compute $\binom{10}{2} = 45$ distances instead of $\binom{225}{2} = 25{,}200$.
-2. **Correctness**: A pixel value that appears 50 times is ecologically more "abundant" than one that appears twice. The species-abundance approach naturally weights by frequency.
-3. **Interpretability**: The result $Q$ represents *expected dissimilarity between two randomly chosen pixels* — a true diversity measure.
+The algorithm slides a window across the image and, for each position, measures how spectrally varied the pixels inside are. To do this efficiently, **pixels with identical spectral values are grouped together** — a window with 225 pixels might only have 10 distinct value combinations, so only 45 pairwise comparisons are needed instead of 25,200. The result is a measure of the average spectral difference between any two pixels in that window: higher values mean more spectral variation, lower values mean more uniformity.
 
 ### The `simplify` Parameter
 
-The `simplify` parameter controls input **truncation precision** before species identification:
+The `simplify` parameter controls how precisely pixel values are compared before grouping them. Values are **truncated** (not rounded) to a set number of decimal places — keeping more decimals means finer distinctions are preserved.
 
-- `simplify=2` (default): $X \to \lfloor X \times 100 \rfloor / 100$ — values truncated to 2 decimal places.
-- `simplify=0`: $X \to \lfloor X \rfloor$ — truncate to integers.
-- `simplify=6`: Near full float32 precision.
+**GUI range:** 0–6, **default:** 2.
 
-This directly affects the **number of species** detected:
+| Value | Meaning | Effect on distinct value groups | Computation cost |
+|-------|---------|---------------------------------|-----------------|
+| **0** | Off — no truncation | Nearly every pixel is unique | Highest |
+| **1** | Keep 1 decimal | Moderate grouping | High |
+| **2** (default) | Keep 2 decimals | Good balance | Moderate |
+| **3** | Keep 3 decimals | Subtle grouping | Moderate |
+| **4** | Keep 4 decimals | Minimal grouping | Low–moderate |
+| **5** | Keep 5 decimals | Very fine distinctions | Low |
+| **6** | Keep 6 decimals | Near full precision | Lowest |
 
-| simplify | Unique species (example) | Computation time |
-|----------|-------------------------|-----------------|
-| 0 | ~5 | Fast |
-| 2 | ~30 | Moderate |
-| 6 | ~200+ (nearly every pixel) | Slow |
+**How it works in practice:** a pixel value of `0.1234567` becomes `0.12` at `simplify=2`. Two pixels with values `0.1234567` and `0.1249999` would be grouped as having the same value at level 2 (both become `0.12`), but would be treated as distinct at level 4 (becoming `0.1235` vs `0.1250`).
 
-Higher precision → more unique species → more distance pairs → richer diversity map but slower computation.
+**Key point:** `simplify=0` skips truncation entirely and keeps full float32 precision. Higher values mean more decimal places are kept, so more spectral variation is detected, producing a more detailed heterogeneity map at the cost of slower computation.
+
+**When to adjust:**
+- **Lower** (1–2): Noisy data, large rasters where speed matters, or exploratory runs.
+- **Default** (2): Recommended starting point for most analyses.
+- **Higher** (3–6): Clean, well-calibrated data; final production maps; when fine spectral variation matters.
 
 ### The `na_tolerance` Parameter
 
@@ -364,7 +346,7 @@ Two tabs provide single-job and batch processing modes.
 | NA Tolerance  | Maximum fraction of NaN pixels allowed in a window (0.0–1.0) |
 | Block Size    | Processing block dimension in pixels              |
 | Workers       | CPU worker count (1–32, only used in CPU/Parallel mode) |
-| Simplify      | Decimal places to truncate input values (0 = integers, default 2) |
+| Simplify      | Decimal places to truncate input values (0 = no truncation, 2 = default, max 6). Lower = fewer species, faster; higher = more species, slower |
 
 **Progress group**
 - Bar shows `current_window / total_windows`
