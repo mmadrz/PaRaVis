@@ -74,6 +74,69 @@ class TestIsIndexComputable:
             result = is_index_computable("SAVI", {}, {4: "R", 5: "N"})
             assert result is False
 
+    def test_savi_with_all_bands(self):
+        """SAVI requires bands L, N, R; with all three it's computable."""
+        result = is_index_computable("SAVI", {}, {3: "L", 4: "R", 5: "N"})
+        assert result is True
+
+    def test_savi_missing_l_band(self):
+        """SAVI requires L band; without it, not computable."""
+        result = is_index_computable("SAVI", {}, {4: "R", 5: "N"})
+        assert result is False
+
+    def test_constant_path_with_mocked_index(self):
+        """Test the constants loop by adding a mock index with constants
+        attribute (no stock spyndex index has it in this version)."""
+        import spyndex
+
+        # Spyndex indices is a frozen Box — unfreeze to add a mock index
+        spyndex.indices._box_config['frozen_box'] = False
+
+        mock_idx = type('MockIdx', (), {
+            'bands': ['R', 'N'],
+            'constants': ['L'],
+        })()
+        mock_name = '_TEST_MOCK_VI'
+        spyndex.indices[mock_name] = mock_idx
+
+        try:
+            # Band L not in constants_override AND spyndex.constants has
+            # L with default=1.0 → should be True
+            result = is_index_computable(mock_name, {}, {4: "R", 5: "N"})
+            assert result is True
+
+            # Override L with a value → should be True
+            result = is_index_computable(mock_name, {"L": 0.5}, {4: "R", 5: "N"})
+            assert result is True
+
+            # Override L with None → spyndex default is 1.0 (not None) → True
+            result = is_index_computable(mock_name, {"L": None}, {4: "R", 5: "N"})
+            assert result is True
+        finally:
+            del spyndex.indices[mock_name]
+            spyndex.indices._box_config['frozen_box'] = True
+
+    def test_constant_path_missing_band_and_constant(self):
+        """When both a required band AND constant are missing,
+        band check fails first."""
+        import spyndex
+
+        spyndex.indices._box_config['frozen_box'] = False
+
+        mock_idx = type('MockIdx', (), {
+            'bands': ['R', 'N', 'L'],
+            'constants': ['X'],
+        })()
+        mock_name = '_TEST_MOCK_VI2'
+        spyndex.indices[mock_name] = mock_idx
+
+        try:
+            result = is_index_computable(mock_name, {}, {4: "R", 5: "N"})
+            assert result is False  # L band missing
+        finally:
+            del spyndex.indices[mock_name]
+            spyndex.indices._box_config['frozen_box'] = True
+
 
 class TestComputeIndex:
     def test_ndvi_output_shape(self, sample_raster_3d, landsat_mapping):

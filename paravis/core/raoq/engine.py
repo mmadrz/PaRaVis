@@ -261,12 +261,12 @@ def _compute_rao_q_window(
             idx += 1
 
     # Rao's Q: Q = Σᵢ Σⱼ dᵢⱼ × pᵢ × pⱼ
-    total = 0.0
+    total = np.float32(0.0)
     for i in range(n_species):
         for j in range(n_species):
             total += dist_matrix[i, j] * p[i] * p[j]
 
-    return total
+    return float(total)
 
 
 def compute_rao_q(

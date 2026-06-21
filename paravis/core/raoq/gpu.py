@@ -470,9 +470,12 @@ def compute_rao_q_gpu(
     total_windows = height * width
     result = np.full((height, width), np.nan, dtype=np.float32)
 
-    # Truncate input data to simplify precision (no rounding)
-    fac = 10 ** config.simplify
-    padded = np.trunc(padded * fac) / fac
+    # Truncate input data to simplify precision (no rounding).
+    # NOTE: must match CPU engine.py behavior — skip when simplify == 0
+    # because `if simplify:` is falsy for 0.
+    if config.simplify:
+        fac = 10 ** config.simplify
+        padded = np.trunc(padded * fac) / fac
 
     # NOTE: CuPy RawKernel has a bug where Python float scalars are
     # received as 0.0 on the GPU. Always use np.float32 for scalar args.
@@ -582,7 +585,7 @@ def compute_rao_q_gpu(
                         continue
 
                     # Relative abundances
-                    p = counts.astype(cp.float64) / nv
+                    p = counts.astype(cp.float32) / nv
 
                     # Full pairwise distance matrix between unique profiles
                     a = unique_profiles[:, None, :]   # (n_species, 1, n_bands)

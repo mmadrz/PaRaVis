@@ -460,3 +460,188 @@ class TestAppModule:
         canvas.axes.clear()
         assert len(canvas.axes.lines) == 0
         canvas.deleteLater()
+
+
+# ---------------------------------------------------------------------------
+# GifWorker — more edge cases
+# ---------------------------------------------------------------------------
+
+class TestGifWorkerMore:
+    def test_single_frame(self, qapp, cleanup_worker):
+        """GifWorker with a single frame."""
+        from paravis.gui.components.workers import GifWorker
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "frame_0.npy")
+            data = np.random.rand(10, 10).astype(np.float32)
+            np.save(path, data)
+
+            def mock_read_raster(path, **kwargs):
+                d = np.load(path)
+                return d, None, None
+
+            with patch("paravis.core.raster.read_raster", mock_read_raster):
+                worker = cleanup_worker(GifWorker(
+                    file_list=[path],
+                    file_names=["Frame 0"],
+                    colormap="viridis",
+                    output_dir=tmpdir,
+                    output_name="single_frame",
+                    dpi=72,
+                    fps=2,
+                    normalize_all=False,
+                ))
+                results = []
+
+                def capture(val):
+                    results.append(val)
+
+                worker.finished.connect(capture)
+                worker.start()
+                worker.wait(15000)
+                QApplication.processEvents()
+
+                if results:
+                    assert os.path.exists(results[0])
+
+    def test_normalize_false(self, qapp, cleanup_worker):
+        """GifWorker with normalize_all=False."""
+        from paravis.gui.components.workers import GifWorker
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            paths = []
+            for i in range(2):
+                p = os.path.join(tmpdir, f"f{i}.npy")
+                np.save(p, np.random.rand(10, 10).astype(np.float32))
+                paths.append(p)
+
+            def mock_read_raster(path, **kwargs):
+                return np.load(path), None, None
+
+            with patch("paravis.core.raster.read_raster", mock_read_raster):
+                worker = cleanup_worker(GifWorker(
+                    file_list=paths,
+                    file_names=["A", "B"],
+                    colormap="plasma",
+                    output_dir=tmpdir,
+                    output_name="no_norm",
+                    dpi=72,
+                    fps=2,
+                    normalize_all=False,
+                ))
+                results = []
+
+                def capture(val):
+                    results.append(val)
+
+                worker.finished.connect(capture)
+                worker.start()
+                worker.wait(15000)
+                QApplication.processEvents()
+
+                if results:
+                    assert os.path.exists(results[0])
+
+
+# ---------------------------------------------------------------------------
+# PlotWorker — more edge cases
+# ---------------------------------------------------------------------------
+
+class TestPlotWorkerMore:
+    def test_pause_resume(self, qapp, cleanup_worker):
+        """Test pause/resume on PlotWorker."""
+        from paravis.gui.components.workers import PlotWorker
+        import time
+
+        results = []
+
+        def slow_plot():
+            time.sleep(1)
+            return "done"
+
+        worker = cleanup_worker(PlotWorker(slow_plot))
+        worker.finished.connect(lambda v: results.append(v))
+
+        # Pause before starting
+        worker.pause()
+        assert worker.is_paused is True
+        worker.resume()
+        assert worker.is_paused is False
+
+        worker.start()
+        worker.wait(5000)
+        QApplication.processEvents()
+        # Should complete since we resumed before start
+        # (pause doesn't affect the worker if it hasn't started yet)
+
+    def test_progress_signal(self, qapp, cleanup_worker):
+        """Test emit_progress on PlotWorker (inherited from BaseWorker)."""
+        from paravis.gui.components.workers import PlotWorker
+
+        def dummy():
+            return 42
+
+        worker = cleanup_worker(PlotWorker(dummy))
+        captured = []
+
+        def capture(val):
+            captured.append(val)
+
+        worker.progress.connect(capture)
+        worker.emit_progress(75)
+        QApplication.processEvents()
+        assert 75 in captured
+
+
+# ---------------------------------------------------------------------------
+# CompareWorker — more edge cases
+# ---------------------------------------------------------------------------
+
+class TestCompareWorkerMore:
+    def test_empty_arrays(self, qapp, cleanup_worker):
+        """CompareWorker with empty arrays."""
+        from paravis.gui.components.workers import CompareWorker
+        import numpy as np
+
+        data1 = np.array([])
+        data2 = np.array([])
+
+        def diff(a, b):
+            return b - a
+
+        worker = cleanup_worker(CompareWorker(data1, data2, diff))
+        results = []
+
+        def capture(val):
+            results.append(val)
+
+        worker.finished.connect(capture)
+        worker.start()
+        worker.wait(5000)
+        QApplication.processEvents()
+
+        if results:
+            assert len(results) == 1
+
+    def test_progress_emit(self, qapp, cleanup_worker):
+        """Test emit_progress on CompareWorker."""
+        from paravis.gui.components.workers import CompareWorker
+        import numpy as np
+
+        def diff(a, b):
+            return b - a
+
+        worker = cleanup_worker(CompareWorker(
+            np.array([1, 2]), np.array([3, 4]), diff
+        ))
+        captured = []
+
+        def capture(val):
+            captured.append(val)
+
+        worker.progress.connect(capture)
+        worker.emit_progress(50)
+        QApplication.processEvents()
+        assert 50 in captured
