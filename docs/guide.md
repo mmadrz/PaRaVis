@@ -890,12 +890,9 @@ This is especially beneficial for large rasters where the full padded array woul
 
 | Shortcut      | Action                               |
 |---------------|--------------------------------------|
-| `Ctrl+O`      | Open raster files (file dialog)      |
 | `Ctrl+Q`      | Quit the application                 |
-| `Ctrl+S`      | Save current plot                    |
 | `Ctrl+,`      | Open Settings dialog                 |
 | `F11`         | Toggle full-screen mode              |
-| `Escape`      | Stop current computation             |
 
 ---
 </details>
