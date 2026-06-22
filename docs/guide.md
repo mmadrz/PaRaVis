@@ -1,6 +1,6 @@
 # PaRaVis v2.0 — User Guide 
 
-> **Pa**rallel **Ra**o's Q **Vis**ualization and Analysis
+> **Pa**rallel **Ra**o's Q **Vis**ualization
 
 A cross-platform desktop application and Python library for spectral index computation, Rao's Q diversity analysis, and raster data visualisation. Built with PySide6, NumPy, Rasterio, Spyndex, and CuPy.
 
