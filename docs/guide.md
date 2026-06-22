@@ -491,7 +491,7 @@ Output: a single GeoTIFF with per-pixel Rao's Q values.
 
 `AboutDialog` — application identification.
 
-- Name and version (v2.0.1).
+- Name and version (v2.0.0).
 - Short description.
 - Author and contributor credits.
 - DOI / citation information.
@@ -907,7 +907,7 @@ This is especially beneficial for large rasters where the full padded array woul
 python --version               # must be ≥ 3.9
 
 # Verify installation
-python -c "import paravis; print(paravis.__version__)"   # should print "2.0.1"
+python -c "import paravis; print(paravis.__version__)"   # should print "2.0.0"
 
 # Check Qt platform
 python -c "from PySide6.QtWidgets import QApplication; app = QApplication([]); print('Qt OK')"
