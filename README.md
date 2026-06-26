@@ -77,7 +77,8 @@ pip install paravis[gui,gpu,dev]  # everything
 |:-----|:---------|
 | <a href="https://github.com/numpy/numpy"><img src="https://img.shields.io/badge/numpy-%3E%3D1.21-013243?style=flat-square&logo=numpy&logoColor=white" alt="numpy"></a> <a href="https://github.com/rasterio/rasterio"><img src="https://img.shields.io/badge/rasterio-%3E%3D1.3-2C8EBB?style=flat-square" alt="rasterio"></a> <a href="https://github.com/awesome-spectral-indices/spyndex"><img src="https://img.shields.io/badge/spyndex-%3E%3D0.4-FF6F00?style=flat-square" alt="spyndex"></a> <a href="https://github.com/matplotlib/matplotlib"><img src="https://img.shields.io/badge/matplotlib-%3E%3D3.5-11557C?style=flat-square" alt="matplotlib"></a> <a href="https://github.com/mwaskom/seaborn"><img src="https://img.shields.io/badge/seaborn-%3E%3D0.12-7DB0D6?style=flat-square" alt="seaborn"></a> <a href="https://github.com/giampaolo/psutil"><img src="https://img.shields.io/badge/psutil-%3E%3D5.0-003D7A?style=flat-square" alt="psutil"></a> | <a href="https://github.com/qtproject/pyside-pyside6"><img src="https://img.shields.io/badge/PySide6-%3E%3D6.5-41CD52?style=flat-square&logo=qt&logoColor=white" alt="PySide6"></a> <a href="https://github.com/cupy/cupy"><img src="https://img.shields.io/badge/cupy-%3E%3D12.0-E90000?style=flat-square" alt="cupy"></a> |
 
-> **Note:** `rasterio` requires the GDAL system library. On Linux: `apt install libgdal-dev`. On Windows/macOS the pip wheel includes it.
+> [!NOTE]
+> `rasterio` requires the GDAL system library. On Linux: `apt install libgdal-dev`. On Windows/macOS the pip wheel includes it.
 
 ---
 
@@ -167,6 +168,17 @@ python -m paravis.gui.app  # or via module
 Light/dark themes, keyboard shortcuts, persistent settings.
 
 > **→ Full GUI walkthrough in [docs/guide.md](docs/guide.md)**
+
+---
+
+## Platform Support
+
+| <img src="https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/linux.svg" width="16"> Linux | <img src="https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/windows.svg" width="16"> Windows | <img src="https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/apple.svg" width="16"> macOS |
+|-------|---------|-------|
+| ✅ Full support (GUI, CPU, GPU). Requires `libgdal-dev` for raster I/O. | ✅ Full support (GUI, CPU, GPU). Self-contained pip wheels. | ✅ GUI, CPU, and headless API work. GPU acceleration not available (no NVIDIA GPUs) — falls back to CPU. Self-contained pip wheels. |
+
+> [!NOTE]
+> GPU acceleration requires the NVIDIA CUDA Toolkit. On Linux/Windows, install the matching CuPy variant (e.g. `cupy-cuda12x`).
 
 ---
 

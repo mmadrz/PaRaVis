@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
@@ -60,7 +60,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.10", "3.12"]
 
     steps:
@@ -109,6 +109,14 @@ jobs:
       - name: Run full test suite (isolated, with coverage)
         if: runner.os == 'Windows'
         shell: bash
+        run: |
+          python scripts/run_tests_isolated.py -- --tb=short -x
+
+      - name: Run full test suite (isolated, with coverage)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: "offscreen"
         run: |
           python scripts/run_tests_isolated.py -- --tb=short -x
 
