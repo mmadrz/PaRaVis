@@ -3,7 +3,7 @@
 > **Pa**rallel **Ra**o's Q **Vis**ualization
 
 <p align="center">
-  <img src="paravis/gui/theme/logo.png" alt="PaRaVis Logo" width="1200">
+  <img src="https://i.ibb.co/h9H37w4/LOGO.png" alt="PaRaVis Logo" width="1200">
 </p>
 
 <div align="center">
