@@ -20,7 +20,7 @@ class RaoQConfig:
     cpu_batch_size: int = 10000
     distance_metric: str = "euclidean"
     p_minkowski: int = 2
-    simplify: int = 2  # truncate to N decimal places (0=integers, no rounding)
+    simplify: int = 2  # truncate to N decimal places (0=no truncation — full float32 precision)
     block_size: int = 1024
 
 

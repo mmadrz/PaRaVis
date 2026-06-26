@@ -73,22 +73,23 @@ The `simplify` parameter controls how precisely pixel values are compared before
 
 | Value | Meaning | Effect on distinct value groups | Computation cost |
 |-------|---------|---------------------------------|-----------------|
-| **0** | Off — no truncation | Nearly every pixel is unique | Highest |
-| **1** | Keep 1 decimal | Moderate grouping | High |
-| **2** (default) | Keep 2 decimals | Good balance | Moderate |
-| **3** | Keep 3 decimals | Subtle grouping | Moderate |
-| **4** | Keep 4 decimals | Minimal grouping | Low–moderate |
-| **5** | Keep 5 decimals | Very fine distinctions | Low |
-| **6** | Keep 6 decimals | Near full precision | Lowest |
+| **0** | Off — no truncation | Nearly every pixel is unique | Highest (full precision) |
+| **1** | Keep 1 decimal | Most aggressive grouping | Lowest (fewest groups) |
+| **2** (default) | Keep 2 decimals | Good balance | Low |
+| **3** | Keep 3 decimals | Subtle grouping | Low–moderate |
+| **4** | Keep 4 decimals | Minimal grouping | Moderate |
+| **5** | Keep 5 decimals | Very fine distinctions | High |
+| **6** | Keep 6 decimals | Near full precision | Highest (near full precision) |
 
-**How it works in practice:** a pixel value of `0.1234567` becomes `0.12` at `simplify=2`. Two pixels with values `0.1234567` and `0.1249999` would be grouped as having the same value at level 2 (both become `0.12`), but would be treated as distinct at level 4 (becoming `0.1235` vs `0.1250`).
+**How it works in practice:** a pixel value of `0.1234567` becomes `0.12` at `simplify=2` (truncated, not rounded). Two pixels with values `0.1234567` and `0.1235567` would be grouped as having the same value at level 2 (both become `0.12`), but would be treated as distinct at level 4 (becoming `0.1234` vs `0.1235`).
 
 **Key point:** `simplify=0` skips truncation entirely and keeps full float32 precision. Higher values mean more decimal places are kept, so more spectral variation is detected, producing a more detailed heterogeneity map at the cost of slower computation.
 
 **When to adjust:**
-- **Lower** (1–2): Noisy data, large rasters where speed matters, or exploratory runs.
-- **Default** (2): Recommended starting point for most analyses.
-- **Higher** (3–6): Clean, well-calibrated data; final production maps; when fine spectral variation matters.
+- **0** — no truncation; use only when you need absolute precision (slowest). Often indistinguishable from 6 in practice.
+- **1** — maximum speed; ideal for noisy data, large rasters, or exploratory runs.
+- **2 (default)** — recommended starting point for most analyses.
+- **3–6** — progressively finer spectral discrimination; use with clean, well-calibrated data or final production maps.
 
 ### The `na_tolerance` Parameter
 
@@ -346,7 +347,7 @@ Two tabs provide single-job and batch processing modes.
 | NA Tolerance  | Maximum fraction of NaN pixels allowed in a window (0.0–1.0) |
 | Block Size    | Processing block dimension in pixels              |
 | Workers       | CPU worker count (1–32, only used in CPU/Parallel mode) |
-| Simplify      | Decimal places to truncate input values (0 = no truncation, 2 = default, max 6). Lower = fewer species, faster; higher = more species, slower |
+| Simplify      | Decimal places to truncate input values (0 = no truncation — full float32 precision, 2 = default, max 6). Higher = more decimal places kept → more species, slower; lower = fewer species, faster. Note: 0 is the most precise (slowest) |
 
 **Progress group**
 - Bar shows `current_window / total_windows`
@@ -382,7 +383,7 @@ Three control tabs switch between file management, plot type, and output options
 
   **Heatmap Features:**
   - **Colormap** — select from any matplotlib colormap (viridis, plasma, RdYlGn, jet, etc.)
-  - **Simplify** — controls input data truncation precision before species identification, not output display (0 = integers, 2 = two decimal places, etc.). Higher precision means more unique spectral profiles detected, producing a finer-grained diversity map
+  - **Simplify** — controls input data truncation precision before species identification, not output display (0 = no truncation — full float32 precision, 2 = two decimal places, etc.). Higher precision means more unique spectral profiles detected, producing a finer-grained diversity map
   - **Auto grid sizing** — `_auto_adjust_grid()` calculates optimal grid dimensions using a square-root heuristic with +10 offset for better spacing
   - **Adaptive font size** — font size scales with `min(cell_width, cell_height)`, with a 4 pt minimum. Text is automatically hidden when cells are smaller than 0.35 inches to prevent overlap
   - **NaN rendering** — NaN values are rendered transparently in both the difference map and heatmap

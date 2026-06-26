@@ -39,7 +39,7 @@ class RaoQWorker(QThread):
     use_gpu : bool
         Whether to use GPU acceleration.
     simplify : int
-        Number of decimal places to round to (0 = integers).
+        Number of decimal places to truncate to (0 = no truncation — full float32 precision).
     """
 
     log_signal = Signal(str)

@@ -93,11 +93,12 @@ Instead of comparing every pair of pixels directly, PaRaVis first groups pixels 
 
 ### The `simplify` Parameter
 
-The **`simplify`** parameter (range **0–6**, default **2**) controls how strictly pixels must match to be considered spectrally identical. Before grouping, all pixel values are **truncated** to the given number of decimal places — so `0.1234567` becomes `0.12` at `simplify=2`. Two pixels are only grouped together if their spectral profiles match exactly after truncation.
+The **`simplify`** parameter (range **0–6**, default **2**) controls how precisely pixel values must match before being considered spectrally identical. Before grouping, all values are **truncated** (not rounded) to the given number of decimal places — so `0.1234567` becomes `0.12` at `simplify=2`. Two pixels are only grouped together if their spectral profiles match exactly after truncation.
 
-- **Lower values** (0–1): fewer distinct spectral profiles per window, faster computation, coarser diversity map
-- **Default (2)**: good balance for most analyses
-- **Higher values** (3–6): more spectrally distinct profiles detected, richer detail, slower computation
+- **0** — no truncation; keeps full float32 precision → **most** distinct spectral profiles, **slowest** computation, finest detail
+- **1** — most aggressive truncation → **fewest** distinct profiles, **fastest** computation, coarsest diversity map
+- **2 (default)** — good balance for most analyses
+- **3–6** — progressively more decimal places retained → more distinct profiles detected, richer detail, slower computation
 
 Six distance metrics are available: Euclidean, Manhattan, Chebyshev, Minkowski (tunable $p$), Canberra, and Bray-Curtis. All work on every backend.
 
