@@ -495,7 +495,7 @@ Output: a single GeoTIFF with per-pixel Rao's Q values.
 - Short description.
 - Author and contributor credits.
 - DOI / citation information.
-- CC BY 4.0 License notice.
+- MIT License notice.
 
 ---
 </details>
@@ -982,4 +982,4 @@ If PaRaVis contributes to your research, please cite:
 
 ---
 
-*© 2024 PaRaVis Contributors. CC BY 4.0.*
+*© 2026 PaRaVis Contributors. MIT License.*
