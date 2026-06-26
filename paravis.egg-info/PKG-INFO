@@ -3,7 +3,7 @@ Name: paravis
 Version: 2.0.0
 Summary: Parallel Rao's Q Visualization and Analysis — Spectral indices, Rao's Q diversity, raster visualization
 Author: Mohammadreza Fathi
-License: CC-BY-4.0
+License: MIT
 Project-URL: Homepage, https://github.com/mmadrz/paravis
 Project-URL: Documentation, https://github.com/mmadrz/paravis/docs/guide
 Project-URL: Source, https://github.com/mmadrz/paravis
@@ -11,7 +11,7 @@ Project-URL: BugTracker, https://github.com/mmadrz/paravis/issues
 Keywords: remote sensing,spectral variation hypothesis,Rao's Q entropy,CPU/GPU computing,GUI
 Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Science/Research
-Classifier: License :: OSI Approved :: Creative Commons Attribution 4.0 International
+Classifier: License :: OSI Approved :: MIT License
 Classifier: Programming Language :: Python :: 3
 Classifier: Programming Language :: Python :: 3.9
 Classifier: Programming Language :: Python :: 3.10
