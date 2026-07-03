@@ -1,6 +1,6 @@
 # PaRaVis v2.0 — User Guide 
 
-> **Pa**rallel **Ra**o's Q **Vis**ualization and Analysis
+> **Pa**rallel **Ra**o's Q **Vis**ualization
 
 A cross-platform desktop application and Python library for spectral index computation, Rao's Q diversity analysis, and raster data visualisation. Built with PySide6, NumPy, Rasterio, Spyndex, and CuPy.
 
@@ -491,7 +491,7 @@ Output: a single GeoTIFF with per-pixel Rao's Q values.
 
 `AboutDialog` — application identification.
 
-- Name and version (v2.0.1).
+- Name and version (v2.0.0).
 - Short description.
 - Author and contributor credits.
 - DOI / citation information.
@@ -890,12 +890,9 @@ This is especially beneficial for large rasters where the full padded array woul
 
 | Shortcut      | Action                               |
 |---------------|--------------------------------------|
-| `Ctrl+O`      | Open raster files (file dialog)      |
 | `Ctrl+Q`      | Quit the application                 |
-| `Ctrl+S`      | Save current plot                    |
 | `Ctrl+,`      | Open Settings dialog                 |
 | `F11`         | Toggle full-screen mode              |
-| `Escape`      | Stop current computation             |
 
 ---
 </details>
@@ -910,7 +907,7 @@ This is especially beneficial for large rasters where the full padded array woul
 python --version               # must be ≥ 3.9
 
 # Verify installation
-python -c "import paravis; print(paravis.__version__)"   # should print "2.0.1"
+python -c "import paravis; print(paravis.__version__)"   # should print "2.0.0"
 
 # Check Qt platform
 python -c "from PySide6.QtWidgets import QApplication; app = QApplication([]); print('Qt OK')"
