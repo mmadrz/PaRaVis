@@ -187,5 +187,3 @@ Light/dark themes, keyboard shortcuts, persistent settings.
 - **Python** ≥ 3.9
 - **RAM**: 4 GB minimum, 8 GB recommended for GUI
 - **GPU** (optional): NVIDIA with Compute Capability 6.0+, driver ≥ 450.0, [CuPy](https://github.com/cupy/cupy) ≥ 12.0
-
-```
