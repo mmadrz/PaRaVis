@@ -187,3 +187,23 @@ Light/dark themes, keyboard shortcuts, persistent settings.
 - **Python** ≥ 3.9
 - **RAM**: 4 GB minimum, 8 GB recommended for GUI
 - **GPU** (optional): NVIDIA with Compute Capability 6.0+, driver ≥ 450.0, [CuPy](https://github.com/cupy/cupy) ≥ 12.0
+  
+---
+
+## Citation
+
+If PaRaVis contributes to your research, please cite:
+
+```bibtex
+@article{FATHI2024102739,
+  title = {PaRaVis: An automatic Python graphical package for ensemble analysis of plant beta diversity using remote sensing proxies},
+  journal = {Ecological Informatics},
+  volume = {82},
+  pages = {102739},
+  year = {2024},
+  issn = {1574-9541},
+  doi = {10.1016/j.ecoinf.2024.102739},
+  url = {https://www.sciencedirect.com/science/article/pii/S1574954124002814},
+  author = {Mohammad Reza Fathi and Hooman Latifi and Hamed Gholizadeh and Siddhartha Khare},
+}
+```
