@@ -31,7 +31,8 @@ try:
         // Uses one CUDA block per window. Emulates the CPU species-abundance
         // approach: identifies unique spectral profiles ("species"), counts
         // their frequencies, computes pairwise distances between species,
-        // and computes Q = (2 / n²) * Σ_{i<j} d_ij * count_i * count_j.
+        // and computes Q = Σ_i Σ_j d_ij * p_i * p_j  (FULL double sum,
+        // identical to the CPU implementation).
         // Shared memory needed: 4*(2+3*n_pixels) + 4*n_pixels*n_bands bytes.
         //
         // metric_id: 0=euclidean 1=manhattan 2=chebyshev 3=minkowski
@@ -140,6 +141,8 @@ try:
             }
 
             // ---- Pass 4 — all threads compute species-pair distances ------
+            // FULL double sum: Q = Σ_i Σ_j d_ij * p_i * p_j (matches CPU
+            // exactly, including the diagonal where d_ii = 0).
             float partial = 0.0f;
             int i_per_thread = (n_species + blockDim.x - 1) / blockDim.x;
             int start_i = tid * i_per_thread;
@@ -148,7 +151,7 @@ try:
             for (int i = start_i; i < end_i; i++) {
                 int rep_i = s_species_rep[i];
                 float ci = (float)s_species_count[i];
-                for (int j = i + 1; j < n_species; j++) {
+                for (int j = 0; j < n_species; j++) {
                     int rep_j = s_species_rep[j];
                     float cj = (float)s_species_count[j];
                     float dist = 0.0f;
@@ -194,7 +197,9 @@ try:
 
                     #undef A
                     #undef B
-                    partial += dist * ci * cj;
+                    float pi = ci / (float)vc;
+                    float pj = cj / (float)vc;
+                    partial += dist * pi * pj;
                 }
             }
 
@@ -214,8 +219,8 @@ try:
                 for (int w = 0; w < n_warps; w++) {
                     total += __int_as_float(s_int[w]);
                 }
-                // Rao's Q = 2 * Σ_{i<j} d_ij * count_i * count_j / n²
-                results[window_idx] = 2.0f * total / (float)(vc * vc);
+                // Rao's Q = Σ_i Σ_j d_ij * p_i * p_j  (FULL double sum)
+                results[window_idx] = total;
             }
         }
 
@@ -300,13 +305,15 @@ try:
                 return;
             }
 
-            // Pass 3 — pairwise distances between unique species
+            // Pass 3 — pairwise distances between unique species.
+            // FULL double sum: Q = Σ_i Σ_j d_ij * p_i * p_j (matches CPU
+            // exactly, including the diagonal where d_ii = 0).
             float total = 0.0f;
             for (int i = 0; i < n_species; i++) {
                 int rep_i = species_rep[i];
                 float ci = (float)species_count[i];
                 int off_i = window_idx * n_pixels * n_bands + rep_i * n_bands;
-                for (int j = i + 1; j < n_species; j++) {
+                for (int j = 0; j < n_species; j++) {
                     int rep_j = species_rep[j];
                     float cj = (float)species_count[j];
                     int off_j = window_idx * n_pixels * n_bands + rep_j * n_bands;
@@ -353,11 +360,13 @@ try:
 
                     #undef A
                     #undef B
-                    total += dist * ci * cj;
+                    float pi = ci / (float)valid_count;
+                    float pj = cj / (float)valid_count;
+                    total += dist * pi * pj;
                 }
             }
-            // Rao's Q = 2 * Σ_{i<j} d_ij * count_i * count_j / n²
-            results[window_idx] = 2.0f * total / (float)(valid_count * valid_count);
+            // Rao's Q = Σ_i Σ_j d_ij * p_i * p_j  (FULL double sum)
+            results[window_idx] = total;
         }
         """
         # Compile both kernels

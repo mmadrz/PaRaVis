@@ -160,11 +160,11 @@ elif metric == "manhattan":
 
 ### GPU Implementation (CUDA Kernel)
 
-The same math is implemented in CUDA C within the `RawKernel`. Each distance metric is a branch inside a loop over species pairs:
+The same math is implemented in CUDA C within the `RawKernel`. Each distance metric is a branch inside a loop over species pairs. The GPU computes the **full double sum** $Q = \sum_i \sum_j d_{ij} \cdot p_i \cdot p_j$ — looping over *all* species pairs (including the diagonal, where $d_{ii} = 0$) so it matches the CPU summation exactly:
 
 ```cuda
 for (int i = start_i; i < end_i; i++) {
-    for (int j = i + 1; j < n_species; j++) {
+    for (int j = 0; j < n_species; j++) {   // FULL double sum — all pairs
         if (metric_id == 0) {        // euclidean
             for (int b = 0; b < n_bands; b++) {
                 float diff = A - B;
@@ -176,9 +176,12 @@ for (int i = start_i; i < end_i; i++) {
                 dist += fabsf(A - B);
         }
         // ... etc
-        partial += dist * ci * cj;
+        float pi = ci / (float)vc;   // p_i = count_i / valid_count
+        float pj = cj / (float)vc;   // p_j = count_j / valid_count
+        partial += dist * pi * pj;
     }
 }
+// results[window_idx] = total;   // Q = Σ_i Σ_j d_ij · p_i · p_j  (no 2× factor)
 ```
 
 ---
@@ -796,13 +799,15 @@ $$4 \times (2 + 3 \times n_{pixels}) + 4 \times n_{pixels} \times n_{bands} \leq
 1. **Thread 0** counts valid (non-NaN) pixels and writes their indices to shared memory (`s_int[0] = valid_count`).
 2. **All threads** cooperatively load pixel data from global memory into shared memory.
 3. **Thread 0** identifies unique spectral profiles (species) by comparing each pixel's band vector against a growing list of species representatives. The count per species is tallied in `s_species_count[]`.
-4. **All threads** participate in computing pairwise distances between species. Each thread handles a subset of species pairs, accumulating partial sums.
+4. **All threads** participate in computing pairwise distances between species. Each thread handles a subset of species rows, computing the distance to *every* species `j` (full double sum), accumulating partial sums.
 5. **Warp-shuffle reduction** (`__shfl_xor_sync`) combines partial sums across threads in each warp.
 6. **Final reduction** sums across warps, and thread 0 writes the result.
 
-The kernel uses the upper-triangular formula for efficiency:
+The kernel computes the **full double sum** — identical to the CPU:
 
-$$Q = \frac{2}{n^2} \times \sum_{i < j} d_{ij} \times \text{count}_i \times \text{count}_j$$
+$$Q = \sum_{i=1}^{S} \sum_{j=1}^{S} d_{ij} \times p_i \times p_j = \frac{1}{n^2} \sum_{i=1}^{S} \sum_{j=1}^{S} d_{ij} \times \text{count}_i \times \text{count}_j$$
+
+where $S$ is the number of unique species, $n$ the number of valid pixels, and the diagonal terms contribute zero ($d_{ii} = 0$).
 
 **Shared memory layout** (dynamic, sized at kernel launch):
 ```
