@@ -48,7 +48,8 @@ dependencies = [
 [project.optional-dependencies]
 gui = ["PySide6>=6.5"]
 gpu = ["cupy>=12.0"]
-dev = ["pytest>=7.0", "pytest-qt>=4.0", "pytest-cov>=4.0"]
+dask = ["dask[array]>=2023.4"]
+dev = ["pytest>=7.0", "pytest-qt>=4.0", "pytest-cov>=4.0", "dask[array]>=2023.4"]
 
 [project.urls]
 Homepage = "https://github.com/mmadrz/paravis"

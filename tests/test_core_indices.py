@@ -17,6 +17,15 @@ from paravis.core.indices import (
 from paravis.core.indices.constants import get_default_constants, merge_constants
 from paravis.core.indices.registry import register_index, list_custom_indices
 
+# dask is an optional dependency (lazily imported inside compute_indices_dask).
+# Skip the dask-accelerated tests when it isn't installed, mirroring the
+# HAS_CUPY pattern used elsewhere in the test suite.
+try:
+    import dask  # noqa: F401
+    HAS_DASK = True
+except ImportError:
+    HAS_DASK = False
+
 
 class TestGetAvailableIndices:
     def test_returns_list(self):
@@ -201,6 +210,7 @@ class TestCustomRegistry:
         assert custom["TEST_VI"]["bands"] == ["N", "R"]
 
 
+@pytest.mark.skipif(not HAS_DASK, reason="dask not installed")
 class TestComputeIndicesDask:
     def test_dask_compute_single(self):
         """Test dask-accelerated compute with single index."""
