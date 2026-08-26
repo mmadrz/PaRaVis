@@ -142,7 +142,8 @@ class TestRaoQModels:
         assert cfg.n_workers == 4
         assert cfg.tile_size == 1024
         assert cfg.use_gpu is False
-        assert cfg.gpu_batch_size == 50000
+        assert cfg.gpu_batch_size == 0  # 0 = auto-detect from VRAM
+        assert cfg.cpu_batch_size == 10000
         assert cfg.distance_metric == "euclidean"
         assert cfg.p_minkowski == 2
         assert cfg.simplify == 2

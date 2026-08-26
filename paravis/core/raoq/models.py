@@ -16,7 +16,7 @@ class RaoQConfig:
     n_workers: int = 4
     tile_size: int = 1024
     use_gpu: bool = False
-    gpu_batch_size: int = 50000
+    gpu_batch_size: int = 0  # 0 = auto-detect from VRAM
     cpu_batch_size: int = 10000
     distance_metric: str = "euclidean"
     p_minkowski: int = 2

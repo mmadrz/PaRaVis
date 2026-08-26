@@ -153,7 +153,7 @@ class RaoQWorker(QThread):
             n_workers=self.num_workers,
             tile_size=1024,
             use_gpu=self.use_gpu,
-            gpu_batch_size=50000,
+            gpu_batch_size=0,  # 0 = auto-detect from VRAM, window size, bands
             cpu_batch_size=self.block_size,
             distance_metric=self.distance_m,
             p_minkowski=self.p_minkowski,

@@ -27,6 +27,11 @@ try:
     # Try compiling the custom CUDA kernel
     try:
         raoq_kernel_code = """
+        // MAX_N_PIXELS: upper bound on ws*ws for fallback kernel stack arrays.
+        // Set to a generous upper bound; the Python side dynamically checks
+        // whether the actual n_pixels fits in GPU local memory.
+        #define MAX_N_PIXELS 10000
+
         // ---- Shared-memory block kernel (for small n_bands) --------------
         // Uses one CUDA block per window. Emulates the CPU species-abundance
         // approach: identifies unique spectral profiles ("species"), counts
@@ -250,8 +255,14 @@ try:
 
             int base = window_idx * n_pixels;
 
+            // Guard: ensure n_pixels fits in stack arrays
+            if (n_pixels > MAX_N_PIXELS) {
+                results[window_idx] = nanf("");
+                return;
+            }
+
             // Pass 1 — count valid pixels and build index list
-            int valid_indices[225];  // max for 15×15 window
+            int valid_indices[MAX_N_PIXELS];
             int valid_count = 0;
             for (int i = 0; i < n_pixels; i++) {
                 if (valid_masks[base + i]) {
@@ -268,8 +279,8 @@ try:
             // Pass 2 — identify unique species by comparing profiles
             // species_rep[s] = pixel index (0..n_pixels-1) of species s representative
             // species_count[s] = number of pixels in species s
-            int species_rep[225];
-            int species_count[225];
+            int species_rep[MAX_N_PIXELS];
+            int species_count[MAX_N_PIXELS];
             int n_species = 0;
 
             for (int vi = 0; vi < valid_count; vi++) {
@@ -380,6 +391,56 @@ except ImportError:
     pass
 
 
+def _get_gpu_limits(block_size: int = 256) -> dict:
+    """Query GPU to determine dynamic limits for kernel selection.
+
+    Returns
+    -------
+    dict
+        'max_shared_n_pixels': max n_pixels for the shared-memory kernel
+            (limited by GPU shared memory per block).
+        'max_fallback_n_pixels': max n_pixels for the fallback kernel
+            (limited by GPU local/stack memory per thread).
+        'max_shared_mem_bytes': total shared memory per block (bytes).
+        'free_memory_gb': free GPU memory (GB).
+    """
+    import cupy as cp
+
+    device = cp.cuda.Device()
+    free_mem = device.mem_info[1]  # free bytes
+
+    # --- Shared-memory kernel limit ---
+    # smem_needed = 4*(2 + 3*n_pixels) + 4*n_pixels*n_bands
+    # For the worst case (many bands), solve for n_pixels:
+    #   n_pixels = (smem_max - 8) / (12 + 4*n_bands)
+    # We use n_bands=1 as the optimistic lower bound; with more bands
+    # the limit shrinks, but the Python side checks per-dataset.
+    smem_max = device.attributes.get(
+        'max_shared_memory_per_block',
+        device.attributes.get('SharedMemoryPerBlock', 49152),
+    )
+    # Conservative: leave 1 KB headroom
+    smem_max_usable = max(smem_max - 1024, 49152)
+
+    # --- Fallback kernel limit ---
+    # Each thread uses 3 stack arrays of n_pixels ints = 12*n_pixels bytes.
+    # With block_size threads, total local mem per block = 12*n_pixels*block_size.
+    # Limit to 25% of free GPU memory to leave room for other allocations.
+    local_per_thread_factor = 12  # 3 arrays × 4 bytes each
+    max_fallback = int(
+        (free_mem * 0.25) / (local_per_thread_factor * block_size)
+    )
+    # Also cap at MAX_N_PIXELS from the CUDA kernel
+    max_fallback = min(max_fallback, 10000)
+
+    return {
+        'max_shared_n_pixels': smem_max_usable,
+        'max_fallback_n_pixels': max_fallback,
+        'max_shared_mem_bytes': smem_max_usable,
+        'free_memory_gb': free_mem / (1024 ** 3),
+    }
+
+
 def is_gpu_available() -> bool:
     """Check if GPU acceleration is available."""
     return GPU_AVAILABLE
@@ -418,6 +479,53 @@ METRIC_IDS = {
     "canberra": 4,
     "braycurtis": 5,
 }
+
+
+def _estimate_gpu_batch_size(
+    n_pixels: int,
+    n_bands: int,
+    target_rows: int = 1,
+) -> int:
+    """Estimate a safe GPU batch size (in windows) based on VRAM.
+
+    The batch must fit in GPU memory. Memory per batch ≈
+    n_batch_rows × width × n_pixels × n_bands × 4 bytes × 3
+    (windows + valid mask + results), plus overhead.
+    We use 30% of free VRAM as the budget.
+
+    Parameters
+    ----------
+    n_pixels : int
+        Window pixel count (ws * ws).
+    n_bands : int
+        Number of spectral bands.
+    target_rows : int
+        Preferred number of rows per batch (default 1).
+
+    Returns
+    -------
+    int
+        Number of windows per batch.
+    """
+    try:
+        import cupy as cp
+        device = cp.cuda.Device()
+        free_mem = device.mem_info[1]  # free bytes
+    except Exception:
+        return 50000  # conservative fallback
+
+    # Bytes per window: n_pixels * n_bands * 4 (float32) × 3 arrays
+    # (d_windows, d_valid, d_batch_results) + overhead factor 1.5
+    bytes_per_window = n_pixels * n_bands * 4 * 3 * 1.5
+    budget = free_mem * 0.30  # use 30% of free VRAM per batch
+
+    max_windows = int(budget / max(bytes_per_window, 1))
+    # At least 1 row's worth of windows
+    max_windows = max(max_windows, target_rows * 100)
+    # Cap at 200000 to avoid overly long kernel launches
+    max_windows = min(max_windows, 200000)
+
+    return max_windows
 
 
 def compute_rao_q_gpu(
@@ -491,11 +599,16 @@ def compute_rao_q_gpu(
     na_tol = np.float32(config.na_tolerance)
 
     if CUSTOM_KERNEL_AVAILABLE:
-        # ---- Select kernel based on shared-memory requirements ------------
-        # Shared-memory kernel is faster but needs room for all pixel data.
-        # For many bands / large windows we fall back to a per-thread kernel.
+        # ---- Dynamic kernel selection based on GPU capabilities ----------
+        # Query GPU limits at runtime instead of using hardcoded values.
+        gpu_limits = _get_gpu_limits(block_size=256)
+
+        # Shared-memory kernel needs: 4*(2 + 3*n_pixels) + 4*n_pixels*n_bands
         smem_needed = 4 * (2 + 3 * n_pixels) + 4 * n_pixels * n_bands
-        use_shared_mem_kernel = smem_needed <= 101376  # GPU max opt-in (99 KB)
+        use_shared_mem_kernel = (
+            smem_needed <= gpu_limits['max_shared_mem_bytes']
+            and n_pixels <= gpu_limits['max_shared_n_pixels']
+        )
 
         if use_shared_mem_kernel:
             kernel = cp.RawKernel(raoq_kernel_code, "compute_raoq_kernel")
@@ -504,32 +617,55 @@ def compute_rao_q_gpu(
             # Opt in to >48 KB shared memory if needed
             if smem_needed > kernel.max_dynamic_shared_size_bytes:
                 kernel.max_dynamic_shared_size_bytes = smem_needed
-        else:
+        elif n_pixels <= gpu_limits['max_fallback_n_pixels']:
+            # Fallback kernel: per-thread, no shared memory needed.
+            # Uses local/stack memory — limit based on GPU free memory.
             kernel = cp.RawKernel(raoq_kernel_code, "compute_raoq_kernel_fallback")
             block_size = 256
-            shared_mem = 0  # no shared memory
+            shared_mem = 0
+        else:
+            # Window too large for either GPU kernel — fall back to CPU
+            from .engine import compute_rao_q
+            return compute_rao_q(raster_data, config, progress_callback=progress_callback)
 
     # ---- Batched row processing -------------------------------------------
     # Process multiple rows per GPU launch to reduce launch overhead,
     # improve GPU utilisation, and reduce Python-side loop overhead.
-    # gpu_batch_size is the target number of windows per batch — convert
-    # to rows so that each batch has roughly that many windows.
+    # Batch size is dynamically estimated from VRAM, window size, and bands.
     # CRITICAL: Each batch transfers ONLY the strip it needs to the GPU,
     # preventing OOM on very large rasters (e.g. 7+ GB full array).
-    batch_rows = max(1, config.gpu_batch_size // width)
+    gpu_batch = config.gpu_batch_size
+    if gpu_batch <= 0:
+        # Auto-detect: estimate from VRAM, window size, and bands
+        gpu_batch = _estimate_gpu_batch_size(n_pixels, n_bands)
+    batch_rows = max(1, gpu_batch // width)
     batch_rows = min(batch_rows, height)  # clamp to image height
 
     try:
+        n_skipped_batches = 0
+        n_processed_batches = 0
         for batch_start in range(0, height, batch_rows):
             batch_end = min(batch_start + batch_rows, height)
             n_rows = batch_end - batch_start
+
+            # ---- CPU-level skip: check if batch has any valid pixels -------
+            # Before transferring to GPU, check if the strip has ANY non-NaN
+            # values. If the entire strip is NaN (common for sparse rasters
+            # with high nodata %), skip the GPU transfer + kernel entirely.
+            batch_strip = padded[:, batch_start:batch_end + ws - 1, :]
+            if not np.any(np.isfinite(batch_strip)):
+                n_skipped_batches += 1
+                if progress_callback is not None:
+                    progress_callback(batch_end * width, total_windows)
+                continue
+            n_processed_batches += 1
 
             # ---- Transfer ONLY the strip needed for this batch to GPU --------
             # We need rows [batch_start, batch_end + ws - 1] because the
             # sliding window at the last row of the batch needs (ws-1)/2
             # pixels of padding below it.
             d_slice = cp.asarray(
-                padded[:, batch_start:batch_end + ws - 1, :],
+                batch_strip,
                 dtype=cp.float32,
             )
 
@@ -554,6 +690,21 @@ def compute_rao_q_gpu(
                 cp.isnan(d_windows_flat.reshape(n_total, n_pixels, n_bands)),
                 axis=2,
             )
+
+            # ---- GPU-level skip: check if any window has valid pixels ------
+            # After building the NaN mask, check if ANY window has enough
+            # valid pixels (≥2 and within na_tolerance). If not, skip the
+            # kernel launch — all results would be NaN anyway.
+            valid_counts = cp.sum(d_valid, axis=1)  # (n_total,)
+            min_valid = max(2, int(n_pixels * (1.0 - config.na_tolerance)))
+            has_valid_windows = bool(cp.any(valid_counts >= min_valid))
+            if not has_valid_windows:
+                d_valid = None
+                n_skipped_batches += 1
+                if progress_callback is not None:
+                    progress_callback(batch_end * width, total_windows)
+                continue
+
             d_windows = cp.nan_to_num(d_windows_flat, nan=0.0)
 
             # Allocate output buffer
@@ -630,6 +781,17 @@ def compute_rao_q_gpu(
 
             if progress_callback is not None:
                 progress_callback(batch_end * width, total_windows)
+
+        # Log skip statistics
+        total_batches = n_skipped_batches + n_processed_batches
+        skip_pct = 100.0 * n_skipped_batches / max(1, total_batches)
+        if n_skipped_batches > 0:
+            import logging as _log
+            _log.getLogger(__name__).info(
+                "GPU batch skip: %d/%d batches skipped (%.1f%%) — "
+                "no valid pixels in batch",
+                n_skipped_batches, total_batches, skip_pct,
+            )
 
         return result
     finally:
