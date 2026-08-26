@@ -48,7 +48,8 @@ jobs:
       - name: Install test & GUI dependencies
         run: |
           pip install --retries 3 \
-            PySide6 pytest pytest-cov pytest-qt psutil
+            PySide6 pytest pytest-cov pytest-qt psutil \
+            'dask[array]'
 
       - name: Run GUI tests (isolated, with coverage tracking)
         env:

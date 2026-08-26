@@ -65,8 +65,14 @@ def run_file(pytest_args: list[str], file: Path, coverage: bool) -> bool:
     print(f"{'=' * 72}")
 
     start = time.monotonic()
-    result = subprocess.run(cmd, cwd=REPO_ROOT)
+    result = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
     elapsed = time.monotonic() - start
+
+    # Always print captured output so CI logs show the actual error
+    if result.stdout:
+        print(result.stdout)
+    if result.stderr:
+        print(result.stderr, file=sys.stderr)
 
     ok = result.returncode == 0
     # SIGABRT (-6) on Linux happens when PySide6 threads are still cleaning up
