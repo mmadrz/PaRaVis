@@ -6,9 +6,28 @@ is_gpu_available, METRIC_IDS, and CPU fallback paths in gpu.py.
 
 Run with:  pytest tests/test_gpu_helpers.py -v
 """
+import sys
 from unittest.mock import MagicMock, patch, PropertyMock
 import numpy as np
 import pytest
+
+
+# ---------------------------------------------------------------------------
+# Helper: make cupy mockable even when not installed
+# ---------------------------------------------------------------------------
+
+def _mock_cupy_device(mock_device=None, side_effect=None):
+    """Return a context manager that injects a mock cupy into sys.modules.
+
+    This lets ``patch("cupy.cuda.Device", ...)`` resolve correctly even
+    when CuPy is not installed in the test environment.
+    """
+    mock_cupy = MagicMock()
+    if side_effect is not None:
+        mock_cupy.cuda.Device.side_effect = side_effect
+    elif mock_device is not None:
+        mock_cupy.cuda.Device.return_value = mock_device
+    return patch.dict("sys.modules", {"cupy": mock_cupy})
 
 
 class TestIsGpuAvailable:
@@ -49,7 +68,7 @@ class TestGetGpuInfo:
         mock_device.attributes = mock_attrs
 
         with patch("paravis.core.raoq.gpu.GPU_AVAILABLE", True):
-            with patch("cupy.cuda.Device", return_value=mock_device):
+            with _mock_cupy_device(mock_device):
                 info = get_gpu_info()
                 assert info["total_gb"] == pytest.approx(8.0, rel=0.01)
                 assert info["free_gb"] == pytest.approx(4.0, rel=0.01)
@@ -60,7 +79,7 @@ class TestGetGpuInfo:
         from paravis.core.raoq.gpu import get_gpu_info
 
         with patch("paravis.core.raoq.gpu.GPU_AVAILABLE", True):
-            with patch("cupy.cuda.Device", side_effect=Exception("no gpu")):
+            with _mock_cupy_device(side_effect=Exception("no gpu")):
                 info = get_gpu_info()
                 assert info["name"] == "Unknown"
                 assert info["total_gb"] == 0
@@ -75,7 +94,7 @@ class TestGetGpuLimits:
         mock_device.mem_info = (8 * 1024**3, 4 * 1024**3)
         mock_device.attributes = {"max_shared_memory_per_block": 49152}
 
-        with patch("cupy.cuda.Device", return_value=mock_device):
+        with _mock_cupy_device(mock_device):
             limits = _get_gpu_limits(block_size=256)
             assert "max_shared_n_pixels" in limits
             assert "max_fallback_n_pixels" in limits
@@ -91,7 +110,7 @@ class TestGetGpuLimits:
         mock_device.mem_info = (1024 * 1024**3, 512 * 1024**3)  # 512 GB free
         mock_device.attributes = {"max_shared_memory_per_block": 49152}
 
-        with patch("cupy.cuda.Device", return_value=mock_device):
+        with _mock_cupy_device(mock_device):
             limits = _get_gpu_limits(block_size=256)
             assert limits["max_fallback_n_pixels"] <= 10000
 
@@ -104,7 +123,7 @@ class TestGetGpuLimits:
         mock_device.mem_info = (1 * 1024**3, 1 * 1024**2)  # 1 MB free
         mock_device.attributes = {"max_shared_memory_per_block": 49152}
 
-        with patch("cupy.cuda.Device", return_value=mock_device):
+        with _mock_cupy_device(mock_device):
             limits = _get_gpu_limits(block_size=256)
             assert limits["max_fallback_n_pixels"] <= 10000
             assert limits["max_fallback_n_pixels"] > 0
@@ -118,7 +137,7 @@ class TestGetGpuLimits:
         # Request 65536 bytes → usable = 65536 - 1024 = 64512
         mock_device.attributes = {"max_shared_memory_per_block": 65536}
 
-        with patch("cupy.cuda.Device", return_value=mock_device):
+        with _mock_cupy_device(mock_device):
             limits = _get_gpu_limits(block_size=256)
             assert limits["max_shared_mem_bytes"] == 64512
 
@@ -131,7 +150,7 @@ class TestGetGpuLimits:
         # Simulate older GPU that doesn't have max_shared_memory_per_block
         mock_device.attributes = {"SharedMemoryPerBlock": 49152}
 
-        with patch("cupy.cuda.Device", return_value=mock_device):
+        with _mock_cupy_device(mock_device):
             limits = _get_gpu_limits(block_size=256)
             assert limits["max_shared_mem_bytes"] > 0
 
@@ -144,7 +163,7 @@ class TestEstimateGpuBatchSize:
         mock_device = MagicMock()
         mock_device.mem_info = (8 * 1024**3, 4 * 1024**3)
 
-        with patch("cupy.cuda.Device", return_value=mock_device):
+        with _mock_cupy_device(mock_device):
             result = _estimate_gpu_batch_size(n_pixels=25, n_bands=4)
             assert isinstance(result, int)
             assert result > 0
@@ -156,7 +175,7 @@ class TestEstimateGpuBatchSize:
         mock_device = MagicMock()
         mock_device.mem_info = (1024 * 1024**3, 512 * 1024**3)  # huge GPU
 
-        with patch("cupy.cuda.Device", return_value=mock_device):
+        with _mock_cupy_device(mock_device):
             result = _estimate_gpu_batch_size(n_pixels=1, n_bands=1)
             assert result <= 200000
 
@@ -167,7 +186,7 @@ class TestEstimateGpuBatchSize:
         mock_device = MagicMock()
         mock_device.mem_info = (1024**3, 1024**2)  # 1MB free → very small
 
-        with patch("cupy.cuda.Device", return_value=mock_device):
+        with _mock_cupy_device(mock_device):
             result = _estimate_gpu_batch_size(n_pixels=10000, n_bands=20, target_rows=1)
             assert result >= 100  # target_rows * 100
 
@@ -175,7 +194,7 @@ class TestEstimateGpuBatchSize:
         """When cupy fails, should return conservative fallback (50000)."""
         from paravis.core.raoq.gpu import _estimate_gpu_batch_size
 
-        with patch("cupy.cuda.Device", side_effect=Exception("no gpu")):
+        with _mock_cupy_device(side_effect=Exception("no gpu")):
             result = _estimate_gpu_batch_size(n_pixels=25, n_bands=4)
             assert result == 50000
 
@@ -186,7 +205,7 @@ class TestEstimateGpuBatchSize:
         mock_device = MagicMock()
         mock_device.mem_info = (8 * 1024**3, 4 * 1024**3)
 
-        with patch("cupy.cuda.Device", return_value=mock_device):
+        with _mock_cupy_device(mock_device):
             small = _estimate_gpu_batch_size(n_pixels=9, n_bands=3)
             large = _estimate_gpu_batch_size(n_pixels=10000, n_bands=20)
             assert small > large
@@ -198,7 +217,7 @@ class TestEstimateGpuBatchSize:
         mock_device = MagicMock()
         mock_device.mem_info = (1024**3, 1024**2)  # very small GPU
 
-        with patch("cupy.cuda.Device", return_value=mock_device):
+        with _mock_cupy_device(mock_device):
             r1 = _estimate_gpu_batch_size(n_pixels=25, n_bands=4, target_rows=1)
             r5 = _estimate_gpu_batch_size(n_pixels=25, n_bands=4, target_rows=5)
             assert r5 >= r1
