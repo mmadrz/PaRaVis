@@ -611,8 +611,8 @@ config = RaoQConfig(
     distance_metric="euclidean",
     p_minkowski=2,
     simplify=2,
-    gpu_batch_size=50000,   # windows per GPU batch (default)
-    cpu_batch_size=10000,   # windows per CPU batch (default)
+    gpu_batch_size=0,           # 0 = auto-detect from VRAM
+    cpu_batch_size=10000,       # windows per CPU batch (default)
 )
 
 # Single-threaded CPU
@@ -854,7 +854,7 @@ for i in range(n_total):
 
 ### Batch Processing on GPU
 
-Rows are processed in **batches** (configurable via `gpu_batch_size` in `RaoQConfig`, default 50,000 windows). For each batch:
+Rows are processed in **batches** (configurable via `gpu_batch_size` in `RaoQConfig`; default `0` = auto-detected from GPU VRAM). For each batch:
 
 1. Sliding windows are extracted from the GPU-resident padded raster using CuPy's `sliding_window_view`.
 2. NaN masks are computed in parallel.
@@ -885,7 +885,7 @@ This is especially beneficial for large rasters where the full padded array woul
 - `backend="auto"` — tries GPU first; falls back to single-threaded CPU if no GPU is detected
 - If the CUDA kernel fails to compile → uses **pure CuPy** (Path C) — still on GPU, just slower
 - If CuPy is missing entirely → `is_gpu_available()` returns `False`, CPU backends are used
-- If GPU runs out of memory → reduce window size or increase `gpu_batch_size`
+- If GPU runs out of memory → reduce window size; if batch size was manually set, try `gpu_batch_size=0` (auto-detect)
 
 ---
 </details>

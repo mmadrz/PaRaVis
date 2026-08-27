@@ -84,6 +84,69 @@ class TestSettingsDialog:
 # NOTE: BandMappingDialog tests removed because they cause
 # Fatal Python error: Aborted (Qt segfault) when run after other GUI tests.
 # See Git history if needed.
+class TestBandMappingDialog:
+    def test_create(self, qapp):
+        from paravis.gui.dialogs.band_mapping import BandMappingDialog
+        dialog = BandMappingDialog(current_mapping={1: "A", 2: "B", 3: "G", 4: "R", 5: "N"})
+        assert dialog.windowTitle() == "Band Mapping Configuration"
+        dialog.close()
+
+    def test_landsat_defaults(self, qapp):
+        from paravis.gui.dialogs.band_mapping import BandMappingDialog
+        dialog = BandMappingDialog(current_mapping={})
+        dialog.reset_landsat_defaults()
+        mapping = dialog.get_mapping()
+        # After resetting to Landsat defaults, common codes should be present
+        assert len(mapping) > 0
+        dialog.close()
+
+    def test_sentinel2_defaults(self, qapp):
+        from paravis.gui.dialogs.band_mapping import BandMappingDialog
+        dialog = BandMappingDialog(current_mapping={})
+        dialog.reset_sentinel2_defaults()
+        mapping = dialog.get_mapping()
+        assert len(mapping) > 0
+        dialog.close()
+
+    def test_clear_all(self, qapp):
+        """Clear all band codes from the table."""
+        from paravis.gui.dialogs.band_mapping import BandMappingDialog
+        dialog = BandMappingDialog(current_mapping={1: "A", 2: "B"})
+        # Manually clear each row's code item
+        for row in range(dialog.table.rowCount()):
+            item = dialog.table.item(row, 1)
+            if item:
+                item.setText("")
+        mapping = dialog.get_mapping()
+        # All codes should be empty
+        for band_num in range(1, 16):
+            assert mapping.get(band_num, "") == ""
+        dialog.close()
+
+    def test_get_mapping(self, qapp):
+        from paravis.gui.dialogs.band_mapping import BandMappingDialog
+        dialog = BandMappingDialog(current_mapping={1: "R", 5: "N"})
+        mapping = dialog.get_mapping()
+        assert isinstance(mapping, dict)
+        dialog.close()
+
+    def test_on_code_changed_updates_description(self, qapp):
+        from paravis.gui.dialogs.band_mapping import BandMappingDialog
+        dialog = BandMappingDialog(current_mapping={})
+        # Set a code on band 1
+        item = dialog.table.item(0, 1)
+        item.setText("R")
+        dialog._update_desc_for_row(0)
+        desc = dialog.table.item(0, 2).text()
+        assert "Red" in desc
+        dialog.close()
+
+    def test_spectral_codes_complete(self, qapp):
+        from paravis.gui.dialogs.band_mapping import SPECTRAL_CODES, CODE_LIST
+        assert len(SPECTRAL_CODES) > 5
+        assert len(CODE_LIST) == len(SPECTRAL_CODES)
+        # CODE_LIST should be sorted
+        assert CODE_LIST == sorted(CODE_LIST)
 # ---------------------------------------------------------------------------
 # ConstantsEditorDialog
 # ---------------------------------------------------------------------------

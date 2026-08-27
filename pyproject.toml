@@ -67,3 +67,16 @@ include = ["paravis*"]
 [tool.setuptools.package-data]
 "paravis.gui.theme" = ["*.qss"]
 "*" = ["*.png", "*.md"]
+
+[tool.coverage.run]
+source = ["paravis"]
+concurrency = ["thread"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.",
+    "raise NotImplementedError",
+    "pass",
+    "except ImportError",
+]

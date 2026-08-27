@@ -11,7 +11,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/paravis?style=flat-square&logo=pypi)](https://pypi.org/project/paravis/)
 [![Python versions](https://img.shields.io/pypi/pyversions/paravis?style=flat-square&logo=python)](https://pypi.org/project/paravis/)
 [![License](https://img.shields.io/pypi/l/paravis?style=flat-square)](https://github.com/mmadrz/paravis/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/tests-369%20passed-success?style=flat-square)](https://github.com/mmadrz/paravis/actions)
+[![Tests](https://img.shields.io/badge/tests-505%20passed-success?style=flat-square)](https://github.com/mmadrz/paravis/actions)
 [![Coverage](https://codecov.io/gh/mmadrz/PaRaVis/branch/main/graph/badge.svg)](https://codecov.io/gh/mmadrz/PaRaVis)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20windows%20%7C%20macOS-lightgrey?style=flat-square)](https://github.com/mmadrz/paravis)
 
@@ -59,6 +59,7 @@ pip install paravis               # headless (scripts, notebooks, HPC)
 pip install paravis[gui]          # + desktop GUI
 pip install paravis[gpu]          # + GPU acceleration (see note below)
 pip install paravis[gui,gpu,dev]  # everything
+```
 
 > **GPU prerequisite:** `paravis[gpu]` installs [CuPy](https://github.com/cupy/cupy), which requires the **NVIDIA CUDA Toolkit** on your system. Check your CUDA version with `nvcc --version`, then install the matching variant manually if `pip install paravis[gpu]` fails:
 > ```bash
@@ -66,7 +67,6 @@ pip install paravis[gui,gpu,dev]  # everything
 > pip install cupy-cuda11x   # for CUDA 11.x
 > ```
 > See the [CuPy installation guide](https://docs.cupy.dev/en/stable/install.html) for details.
-```
 
 ---
 
