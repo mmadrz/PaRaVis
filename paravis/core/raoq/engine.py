@@ -318,6 +318,11 @@ def compute_rao_q(
     batch_rows = max(1, config.cpu_batch_size // width)
     batch_rows = min(batch_rows, height)
 
+    # Report progress roughly every 1% of rows so the progress bar advances
+    # smoothly instead of jumping in large batch-sized steps (which made it
+    # look like it "skipped" fast NA regions).
+    progress_every = max(1, height // 100)
+
     for batch_start in range(0, height, batch_rows):
         batch_end = min(batch_start + batch_rows, height)
         n_rows = batch_end - batch_start
@@ -352,8 +357,11 @@ def compute_rao_q(
                 )
                 result[row, col] = value
 
-        if progress_callback is not None:
-            progress_callback(batch_end * width, total_windows)
+            # Report progress per row (throttled to ~1% steps) for smoothness.
+            if progress_callback is not None and (
+                (row + 1) % progress_every == 0 or row == height - 1
+            ):
+                progress_callback((row + 1) * width, total_windows)
 
     return result
 
@@ -454,7 +462,12 @@ def compute_rao_q_parallel(
 
     height, width = raster_data.shape[1], raster_data.shape[2]
     total_windows = height * width
-    rows_per_chunk = max(1, height // config.n_workers)
+
+    # Create many small chunks (~100 progress updates per file) so the
+    # progress bar advances smoothly instead of jumping in large
+    # n_workers-sized steps.
+    n_chunks = min(height, max(config.n_workers * 10, 100))
+    rows_per_chunk = max(1, height // n_chunks)
     row_ranges = [
         list(range(i, min(i + rows_per_chunk, height)))
         for i in range(0, height, rows_per_chunk)

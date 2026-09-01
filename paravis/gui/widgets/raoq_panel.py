@@ -30,7 +30,8 @@ class BatchProcessingManager(QThread):
     """Manages batch processing of multiple Rao's Q jobs (v1 parity)."""
 
     log_signal = Signal(str)
-    progress_signal = Signal(int, int)  # current, total (v1 style)
+    # current_windows, total_windows, job_idx, total_jobs
+    progress_signal = Signal(int, int, int, int)
     finished_signal = Signal(bool, str)
     current_job_signal = Signal(str, int)
 
@@ -38,8 +39,10 @@ class BatchProcessingManager(QThread):
         super().__init__(parent)
         self.job_list = job_list
         self.parameters = parameters
-        self.current_worker = None
         self.is_running = True
+        # Kept for API compatibility — jobs now run directly in this thread
+        # rather than via a nested worker QThread.
+        self.current_worker = None
 
     def run(self):
         try:
@@ -64,27 +67,17 @@ class BatchProcessingManager(QThread):
                     self.parameters['output_folder'], f"{output_name}.tif"
                 )
 
-                self.current_worker = RaoQWorker(
-                    raster_paths=input_files,
-                    output_path=output_path,
-                    distance_m=self.parameters['distance_m'],
-                    window=self.parameters['window'],
-                    na_tolerance=self.parameters['na_tolerance'],
-                    block_size=self.parameters.get('block_size', 1024),
-                    num_workers=self.parameters['num_workers'],
-                    p_minkowski=self.parameters.get('p_minkowski', 2),
-                    use_gpu=self.parameters['use_gpu'],
-                    simplify=self.parameters.get('simplify', 2),
+                # Run the job directly in this thread (no nested QThread).
+                # This mirrors the single-job path and avoids the signal
+                # delivery problems caused by spawning a QThread from inside
+                # another QThread's run().
+                success, msg = self._run_single_job(
+                    input_files, output_path, job_idx, total_jobs
                 )
-                self.current_worker.log_signal.connect(self.log_signal)
-                self.current_worker.progress_signal.connect(lambda c, t: None)
-                self.current_worker.finished_signal.connect(
-                    lambda success, msg, name=output_name: self.log_signal.emit(
-                        f"✅ Job '{name}': {msg}" if success else f"❌ Job '{name}': {msg}"
-                    )
+                self.log_signal.emit(
+                    f"✅ Job '{output_name}': {msg}" if success
+                    else f"❌ Job '{output_name}': {msg}"
                 )
-                self.current_worker.start()
-                self.current_worker.wait()
 
                 if not self.is_running:
                     break
@@ -102,10 +95,106 @@ class BatchProcessingManager(QThread):
             self.log_signal.emit(f"\n❌ Batch error: {e}")
             self.finished_signal.emit(False, str(e))
 
+    def _run_single_job(self, input_files, output_path, job_idx, total_jobs):
+        """Run one Rao's Q job synchronously in the current thread.
+
+        Returns
+        -------
+        (success: bool, message: str)
+        """
+        import rasterio
+        import traceback
+
+        from paravis.core.raoq.models import RaoQConfig
+
+        try:
+            # Read rasters
+            self.log_signal.emit("📂 Reading raster data...")
+            datasets = [rasterio.open(p) for p in input_files]
+            profile = datasets[0].profile
+            height = datasets[0].height
+            width = datasets[0].width
+            n_bands = len(datasets)
+            self.log_signal.emit(f"   Raster: {width}×{height}, {n_bands} bands")
+
+            data = np.zeros((n_bands, height, width), dtype=np.float32)
+            for i, ds in enumerate(datasets):
+                band_data = ds.read(1).astype(np.float32)
+                nodata = ds.nodata
+                if nodata is not None and np.isfinite(nodata):
+                    band_data[np.isclose(band_data, nodata)] = np.nan
+                data[i] = band_data
+                ds.close()
+
+            total_windows = height * width
+            self.log_signal.emit(f"   Total windows: {total_windows:,}")
+
+            config = RaoQConfig(
+                window_size=self.parameters['window'],
+                step_size=1,
+                na_tolerance=self.parameters['na_tolerance'],
+                n_workers=self.parameters['num_workers'],
+                tile_size=1024,
+                use_gpu=self.parameters['use_gpu'],
+                gpu_batch_size=0,
+                cpu_batch_size=self.parameters.get('block_size', 1024),
+                distance_metric=self.parameters['distance_m'],
+                p_minkowski=self.parameters.get('p_minkowski', 2),
+                simplify=self.parameters.get('simplify', 2),
+            )
+
+            if not self.is_running:
+                return False, "Processing stopped by user"
+
+            # Progress callback — report the current file's window progress
+            # along with the job index / total jobs.
+            def _progress(cur, tot):
+                self.progress_signal.emit(
+                    min(cur, total_windows), total_windows, job_idx, total_jobs
+                )
+                if not self.is_running:
+                    raise RuntimeError("Cancelled")
+
+            # Compute
+            if self.parameters['use_gpu']:
+                self.log_signal.emit("⚡ Launching GPU computation...")
+                from paravis.core.raoq.gpu import compute_rao_q_gpu
+                result = compute_rao_q_gpu(data, config, progress_callback=_progress)
+            elif self.parameters['num_workers'] > 1:
+                self.log_signal.emit(
+                    f"⚡ Launching CPU parallel computation ({self.parameters['num_workers']} workers)..."
+                )
+                config.n_workers = self.parameters['num_workers']
+                from paravis.core.raoq.engine import compute_rao_q_parallel
+                result = compute_rao_q_parallel(data, config, progress_callback=_progress)
+            else:
+                self.log_signal.emit("⚡ Launching CPU computation (single-threaded)...")
+                from paravis.core.raoq.engine import compute_rao_q
+                result = compute_rao_q(data, config, progress_callback=_progress)
+
+            self.progress_signal.emit(total_windows, total_windows, job_idx, total_jobs)
+
+            if not self.is_running:
+                return False, "Processing stopped by user"
+
+            # Write output
+            self.log_signal.emit("\n💾 Writing output raster...")
+            profile.update(dtype=rasterio.float32, count=1, compress='lzw')
+            with rasterio.open(output_path, 'w', **profile) as dst:
+                dst.write(result.astype(np.float32), 1)
+
+            self.log_signal.emit(f"✅ Output saved to: {output_path}")
+            return True, f"Rao's Q computation completed! Processed {total_windows:,} windows."
+
+        except Exception as e:
+            self.log_signal.emit(f"\n❌ Computation error: {e}")
+            self.log_signal.emit(traceback.format_exc())
+            return False, str(e)
+
     def stop(self):
+        # Setting is_running to False makes the progress callback raise
+        # RuntimeError("Cancelled"), which aborts the current job.
         self.is_running = False
-        if self.current_worker:
-            self.current_worker.stop()
 
 
 class RaoQWidget(QWidget):
@@ -839,12 +928,16 @@ class RaoQWidget(QWidget):
         self.clear_jobs_btn.setEnabled(False)
 
         self.batch_log_display.clear()
+        self.batch_progress_bar.setRange(0, 100)
         self.batch_progress_bar.setValue(0)
+        self.batch_progress_bar.setFormat("%p%")
         self.batch_status_label.setText("Processing batch...")
 
         self.batch_manager = BatchProcessingManager(self.batch_jobs, parameters)
         self.batch_manager.log_signal.connect(self.batch_log)
-        self.batch_manager.progress_signal.connect(self.update_batch_progress)
+        self.batch_manager.progress_signal.connect(
+            self.update_batch_progress, Qt.ConnectionType.QueuedConnection
+        )
         self.batch_manager.current_job_signal.connect(self.update_current_job)
         self.batch_manager.finished_signal.connect(self.on_batch_finished)
         self.batch_manager.start()
@@ -859,13 +952,18 @@ class RaoQWidget(QWidget):
                 self.batch_manager.stop()
                 self.batch_log("\n⚠️ Stopping batch...")
 
-    def update_batch_progress(self, current, total):
+    def update_batch_progress(self, current, total, job_idx, total_jobs):
         if total > 0:
             pct = (current / total) * 100
             self.batch_progress_bar.setRange(0, total)
             self.batch_progress_bar.setValue(current)
-            self.batch_progress_bar.setFormat("%v / %m jobs  (%p%)")
-            self.batch_status_label.setText(f"Batch progress: {pct:.1f}%  |  {current:,} of {total:,} jobs")
+            self.batch_progress_bar.setFormat(
+                f"File {job_idx}/{total_jobs}  |  %v / %m windows  (%p%)"
+            )
+            self.batch_status_label.setText(
+                f"File {job_idx} of {total_jobs}  |  {pct:.1f}%  |  "
+                f"{current:,} of {total:,} windows"
+            )
 
     def update_current_job(self, job_description, job_number):
         self.batch_current_job_label.setText(job_description)
