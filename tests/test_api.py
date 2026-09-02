@@ -8,6 +8,40 @@ import numpy as np
 import pytest
 
 
+class TestPublicApiExports:
+    """Verify the top-level paravis.api exports match the documented API."""
+
+    def test_all_documented_functions_exported(self):
+        """README documents compute_index, compute_indices, compute_rao_q,
+        plot_raster, plot_comparison, list_available_indices."""
+        from paravis.api import (
+            compute_index,
+            compute_indices,
+            compute_rao_q,
+            plot_raster,
+            plot_comparison,
+            list_available_indices,
+        )
+        assert callable(compute_index)
+        assert callable(compute_indices)
+        assert callable(compute_rao_q)
+        assert callable(plot_raster)
+        assert callable(plot_comparison)
+        assert callable(list_available_indices)
+
+    def test_all_matches_module_all(self):
+        """__all__ should contain exactly the documented public functions."""
+        import paravis.api
+        assert set(paravis.api.__all__) == {
+            "compute_index",
+            "compute_indices",
+            "list_available_indices",
+            "compute_rao_q",
+            "plot_raster",
+            "plot_comparison",
+        }
+
+
 class TestListAvailableIndices:
     def test_returns_list_of_strings(self):
         from paravis.api.indices import list_available_indices

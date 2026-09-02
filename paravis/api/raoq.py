@@ -62,9 +62,11 @@ def compute_rao_q(
     max_pixels : int
         Maximum pixels to read (auto-downsamples beyond this).
     simplify : int
-        Number of decimal places to round the output to (0 = integers, default 2).
+        Number of decimal places to truncate the output to (0 = no truncation —
+        full float32 precision, default 2).
     distance_metric : str
-        Distance metric: 'euclidean', 'manhattan', 'chebyshev', or 'minkowski'.
+        Distance metric: 'euclidean', 'manhattan', 'chebyshev', 'minkowski',
+        'canberra', or 'braycurtis'.
     p_minkowski : int
         Exponent for Minkowski distance (ignored for other metrics).
 
