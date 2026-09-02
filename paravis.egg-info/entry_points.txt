@@ -1,2 +1,0 @@
-[gui_scripts]
-paravis = paravis.gui.app:main

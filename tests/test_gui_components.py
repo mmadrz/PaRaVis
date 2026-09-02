@@ -645,3 +645,111 @@ class TestCompareWorkerMore:
         worker.emit_progress(50)
         QApplication.processEvents()
         assert 50 in captured
+
+
+# ---------------------------------------------------------------------------
+# paravis/gui/app.py — entry point tests
+# ---------------------------------------------------------------------------
+
+class TestAppEntryPoint:
+    """Tests for paravis.gui.app module (QApplication factory)."""
+
+    def test_suppress_gdkpixbuf_warnings_non_linux(self):
+        """On non-Linux platforms the function should return immediately."""
+        import sys
+        from unittest.mock import patch
+        from paravis.gui import app as app_mod
+
+        with patch.object(sys, "platform", "win32"):
+            with patch("paravis.gui.app.ctypes") as mock_ctypes:
+                app_mod._suppress_gdkpixbuf_warnings()
+                mock_ctypes.CDLL.assert_not_called()
+
+    def test_suppress_gdkpixbuf_warnings_exception_swallowed(self):
+        """If GLib cannot be loaded, the function must not raise."""
+        import sys
+        from unittest.mock import patch
+        from paravis.gui import app as app_mod
+
+        with patch.object(sys, "platform", "linux"):
+            with patch("paravis.gui.app.ctypes.util.find_library", return_value=None):
+                app_mod._suppress_gdkpixbuf_warnings()  # should not raise
+
+    def test_suppress_gdkpixbuf_warnings_linux_sets_handler(self):
+        """On Linux, a GLib log handler should be installed for GdkPixbuf."""
+        import sys
+        from unittest.mock import MagicMock, patch
+        from paravis.gui import app as app_mod
+
+        mock_glib = MagicMock()
+        with patch.object(sys, "platform", "linux"):
+            with patch("paravis.gui.app.ctypes.util.find_library", return_value="libglib-2.0.so.0"):
+                with patch("paravis.gui.app.ctypes.CDLL", return_value=mock_glib):
+                    app_mod._suppress_gdkpixbuf_warnings()
+                    mock_glib.g_log_set_handler.assert_called_once()
+
+    def test_create_app_plugin_path_set_when_missing(self):
+        """create_app should set QT_PLUGIN_PATH when it is not already set."""
+        import os
+        import sys
+        from unittest.mock import patch
+        from paravis.gui import app as app_mod
+
+        saved = os.environ.pop("QT_PLUGIN_PATH", None)
+        try:
+            with patch.object(sys, "platform", "linux"):
+                with patch("paravis.gui.app._suppress_gdkpixbuf_warnings"):
+                    with patch("paravis.gui.app.QLibraryInfo") as mock_qli:
+                        mock_qli.path.return_value = "/fake/plugins"
+                        with patch("os.path.isdir", return_value=True):
+                            with patch("paravis.gui.app.QApplication") as mock_app:
+                                app_mod.create_app()
+                                assert os.environ.get("QT_PLUGIN_PATH") == "/fake/plugins"
+        finally:
+            if saved is not None:
+                os.environ["QT_PLUGIN_PATH"] = saved
+            else:
+                os.environ.pop("QT_PLUGIN_PATH", None)
+
+    def test_create_app_plugin_path_not_overridden_when_set(self):
+        """create_app should NOT override an existing QT_PLUGIN_PATH."""
+        import os
+        import sys
+        from unittest.mock import patch
+        from paravis.gui import app as app_mod
+
+        saved = os.environ.get("QT_PLUGIN_PATH")
+        os.environ["QT_PLUGIN_PATH"] = "/user/set/plugins"
+        try:
+            with patch.object(sys, "platform", "linux"):
+                with patch("paravis.gui.app._suppress_gdkpixbuf_warnings"):
+                    with patch("paravis.gui.app.QLibraryInfo") as mock_qli:
+                        with patch("paravis.gui.app.QApplication") as mock_app:
+                            app_mod.create_app()
+                            assert os.environ["QT_PLUGIN_PATH"] == "/user/set/plugins"
+                            mock_qli.path.assert_not_called()
+        finally:
+            if saved is not None:
+                os.environ["QT_PLUGIN_PATH"] = saved
+            else:
+                os.environ.pop("QT_PLUGIN_PATH", None)
+
+    def test_create_app_plugin_path_exception_swallowed(self):
+        """If QLibraryInfo fails, create_app should not raise."""
+        import os
+        import sys
+        from unittest.mock import patch
+        from paravis.gui import app as app_mod
+
+        saved = os.environ.pop("QT_PLUGIN_PATH", None)
+        try:
+            with patch.object(sys, "platform", "linux"):
+                with patch("paravis.gui.app._suppress_gdkpixbuf_warnings"):
+                    with patch("paravis.gui.app.QLibraryInfo", side_effect=Exception("boom")):
+                        with patch("paravis.gui.app.QApplication") as mock_app:
+                            app_mod.create_app()  # should not raise
+        finally:
+            if saved is not None:
+                os.environ["QT_PLUGIN_PATH"] = saved
+            else:
+                os.environ.pop("QT_PLUGIN_PATH", None)

@@ -84,6 +84,9 @@ class RaoQWorker(QThread):
 
         if not self.is_running:
             self.finished_signal.emit(False, "Processing stopped by user")
+            return
+
+        self.finished_signal.emit(True, "Rao's Q computation completed")
 
     def _compute_rao_q(self):
         """Compute Rao's Q using v2 engine with row-by-row progress."""

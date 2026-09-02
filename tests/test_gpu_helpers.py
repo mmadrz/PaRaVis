@@ -101,6 +101,22 @@ class TestGetGpuLimits:
             assert "max_shared_mem_bytes" in limits
             assert "free_memory_gb" in limits
 
+    def test_with_mock_cupy_values(self):
+        """_get_gpu_limits should compute correct values from a mocked GPU."""
+        from paravis.core.raoq.gpu import _get_gpu_limits
+
+        mock_device = MagicMock()
+        mock_device.mem_info = (8 * 1024**3, 4 * 1024**3)  # total=8GB, free=4GB
+        mock_device.attributes = {"max_shared_memory_per_block": 49152}
+
+        with _mock_cupy_device(mock_device):
+            limits = _get_gpu_limits(block_size=256)
+            assert limits["max_shared_mem_bytes"] == 49152
+            assert limits["free_memory_gb"] == pytest.approx(4.0, rel=0.01)
+            # max_fallback = (4GB * 0.25) / (12 * 256), capped at 10000
+            assert limits["max_fallback_n_pixels"] <= 10000
+            assert limits["max_fallback_n_pixels"] > 0
+
     def test_fallback_limit_capped_at_10000(self):
         """Fallback n_pixels should never exceed MAX_N_PIXELS (10000)."""
         from paravis.core.raoq.gpu import _get_gpu_limits

@@ -5,10 +5,12 @@ Usage:
     python -m paravis.gui.app
     # or after pip install:  paravis
 """
+import ctypes
+import ctypes.util
 import os
 import sys
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QLibraryInfo, Qt
 from PySide6.QtWidgets import QApplication
 
 from paravis.__version__ import __version__
@@ -28,9 +30,6 @@ def _suppress_gdkpixbuf_warnings():
     if not sys.platform.startswith("linux"):
         return
     try:
-        import ctypes
-        import ctypes.util
-
         glib = ctypes.CDLL(ctypes.util.find_library("glib-2.0") or "libglib-2.0.so.0")
 
         G_LOG_LEVEL_CRITICAL = 1 << 3  # G_LOG_LEVEL_CRITICAL
@@ -85,8 +84,6 @@ def create_app() -> QApplication:
     # plugin 'xcb'" due to a version mismatch.
     if not os.environ.get("QT_PLUGIN_PATH"):
         try:
-            from PySide6.QtCore import QLibraryInfo
-
             plugins_path = QLibraryInfo.path(
                 QLibraryInfo.LibraryPath.PluginsPath
             )

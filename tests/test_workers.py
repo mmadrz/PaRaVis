@@ -1499,3 +1499,91 @@ class TestIndicesBatchWorker:
 
         assert result.file_path == src_path
         assert os.path.exists(out_path)
+
+
+class TestRaoQWorkerRunBranches:
+    """Tests for RaoQWorker.run() error-handling and success branches."""
+
+    def _make_worker(self):
+        from paravis.workers.raoq_worker import RaoQWorker
+        worker = RaoQWorker(
+            raster_paths=["dummy.tif"],
+            output_path="out.tif",
+            distance_m="euclidean",
+            window=3,
+            na_tolerance=1.0,
+            block_size=1024,
+            num_workers=1,
+            p_minkowski=2,
+            use_gpu=False,
+            simplify=2,
+        )
+        return worker
+
+    def test_run_cancelled_runtime_error(self, qapp):
+        """run() should handle RuntimeError('Cancelled') gracefully."""
+        from unittest.mock import patch
+        worker = self._make_worker()
+        finished = []
+
+        def on_finished(success, msg):
+            finished.append((success, msg))
+
+        worker.finished_signal.connect(on_finished)
+        with patch.object(worker, "_compute_rao_q", side_effect=RuntimeError("Cancelled")):
+            worker.run()
+        assert finished == [(False, "Processing stopped by user")]
+
+    def test_run_generic_exception(self, qapp):
+        """run() should catch generic exceptions and emit finished(False)."""
+        from unittest.mock import patch
+        worker = self._make_worker()
+        finished = []
+
+        def on_finished(success, msg):
+            finished.append((success, msg))
+
+        worker.finished_signal.connect(on_finished)
+        with patch.object(worker, "_compute_rao_q", side_effect=ValueError("bad data")):
+            worker.run()
+        assert len(finished) == 1
+        assert finished[0][0] is False
+        assert "bad data" in finished[0][1]
+
+    def test_run_not_running_after_completion(self, qapp):
+        """If is_running is False after _compute_rao_q, emit stopped."""
+        from unittest.mock import patch
+        worker = self._make_worker()
+        finished = []
+
+        def on_finished(success, msg):
+            finished.append((success, msg))
+
+        worker.finished_signal.connect(on_finished)
+        with patch.object(worker, "_compute_rao_q", return_value=None):
+            worker.is_running = False
+            worker.run()
+        assert finished == [(False, "Processing stopped by user")]
+
+    def test_run_success(self, qapp):
+        """run() should emit finished(True) on successful completion."""
+        from unittest.mock import patch
+        worker = self._make_worker()
+        finished = []
+
+        def on_finished(success, msg):
+            finished.append((success, msg))
+
+        worker.finished_signal.connect(on_finished)
+        with patch.object(worker, "_compute_rao_q", return_value=None):
+            worker.run()
+        assert len(finished) == 1
+        assert finished[0][0] is True
+
+    def test_read_failure_raises(self, qapp):
+        """_compute_rao_q should raise when raster reading fails."""
+        from unittest.mock import patch
+        worker = self._make_worker()
+        with patch("rasterio.open", side_effect=FileNotFoundError("no file")):
+            with pytest.raises(FileNotFoundError):
+                worker._compute_rao_q()

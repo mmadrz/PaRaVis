@@ -820,3 +820,51 @@ class TestRaoQSpecies:
             _compute_rao_q_window(
                 window_data, valid_mask, 0.3, distance_metric="this_metric_does_not_exist"
             )
+
+
+# ---------------------------------------------------------------------------
+# paravis/core/raoq/engine.py — _build_padded_strip tests
+# ---------------------------------------------------------------------------
+
+class TestBuildPaddedStrip:
+    """Tests for the internal _build_padded_strip helper function."""
+
+    def test_non_float32_dtype_converted(self):
+        """_build_padded_strip should convert non-float32 input to float32."""
+        from paravis.core.raoq.engine import _build_padded_strip
+
+        # int16 raster
+        data = np.zeros((2, 10, 10), dtype=np.int16)
+        result = _build_padded_strip(data, 0, 10, half=1)
+        assert result.dtype == np.float32
+
+    def test_float32_dtype_unchanged(self):
+        """_build_padded_strip should keep float32 input as-is."""
+        from paravis.core.raoq.engine import _build_padded_strip
+
+        data = np.zeros((2, 10, 10), dtype=np.float32)
+        result = _build_padded_strip(data, 0, 10, half=1)
+        assert result.dtype == np.float32
+
+    def test_padding_shape(self):
+        """Verify the padded strip has the expected shape with NaN edges."""
+        from paravis.core.raoq.engine import _build_padded_strip
+
+        data = np.ones((1, 10, 10), dtype=np.float32)
+        half = 2
+        result = _build_padded_strip(data, 0, 10, half=half)
+        # n_rows + 2*half rows, width + 2*half cols
+        assert result.shape == (1, 10 + 2 * half, 10 + 2 * half)
+        # Top-left corner should be NaN (padding)
+        assert np.isnan(result[0, 0, 0])
+        # Interior should be 1.0
+        assert result[0, half, half] == 1.0
+
+    def test_simplify_truncates(self):
+        """simplify should truncate (not round) values to N decimals."""
+        from paravis.core.raoq.engine import _build_padded_strip
+
+        data = np.full((1, 10, 10), 1.23456, dtype=np.float32)
+        result = _build_padded_strip(data, 0, 10, half=1, simplify=2)
+        # 1.23456 truncated to 2 decimals = 1.23
+        assert result[0, 1, 1] == pytest.approx(1.23, abs=1e-6)
