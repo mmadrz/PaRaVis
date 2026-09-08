@@ -26,20 +26,20 @@
 
 </div>
 
-**PaRaVis** is a cross-platform Python library and desktop GUI for **spectral index computation**, **Rao's Q diversity analysis**, and **raster data visualization** — built for remote sensing researchers who need both interactive exploration and automated batch processing.
+**PaRaVis** is a cross-platform Python library and desktop GUI for **spectral index computation**, **Rao's Q diversity analysis**, and **raster data visualization**. It is designed for remote sensing researchers who need both interactive exploration and automated batch processing.
 
-Compute **200+ spectral indices** with a single call, quantify spectral diversity with **Rao's Q** across six distance metrics, and accelerate large rasters with CPU, multi-core, or **GPU (CUDA)** backends. A polished PySide6 interface handles interactive work, while a zero-Qt headless API plugs straight into scripts, Jupyter notebooks, and HPC pipelines.
+Compute **200+ spectral indices** with a single call, quantify spectral diversity with **Rao's Q** across six distance metrics, and accelerate large rasters with CPU, multi-core, or **GPU (CUDA)** backends. A polished PySide6 interface handles interactive work, while a zero-Qt headless API plugs directly into scripts, Jupyter notebooks, and HPC pipelines.
 
 ---
 
 ## Features
 
-- **200+ Spectral Indices** — NDVI, EVI, SAVI, NDWI, NBR, BAI, and more via [Spyndex](https://github.com/awesome-spectral-indices/spyndex). Register custom indices with the `@register_index` decorator.
-- **Rao's Q Diversity** — Moving-window quadratic entropy with three backends: CPU ([NumPy](https://github.com/numpy/numpy)), multi-core parallel (`ProcessPoolExecutor`), and GPU-accelerated ([CuPy](https://github.com/cupy/cupy) + custom CUDA `RawKernel`).
-- **6 Distance Metrics** — Euclidean, Manhattan, Chebyshev, Minkowski, Canberra, and Bray-Curtis — all supported on every backend.
-- **Raster I/O** — Downsampling for large files, LZW-compressed GeoTIFF output, multi-band support.
-- **Desktop GUI** — Three-panel layout, light/dark themes, splash screen, and full-screen mode for a better experience.
-- **Headless API** — Zero-Qt core modules usable in scripts, notebooks, and HPC clusters.
+- **200+ Spectral Indices**: NDVI, EVI, SAVI, NDWI, NBR, BAI, and more via [Spyndex](https://github.com/awesome-spectral-indices/spyndex). Register custom indices with the `@register_index` decorator.
+- **Rao's Q Diversity**: Moving-window quadratic entropy with three backends: CPU ([NumPy](https://github.com/numpy/numpy)), multi-core parallel (`ProcessPoolExecutor`), and GPU-accelerated ([CuPy](https://github.com/cupy/cupy) + custom CUDA `RawKernel`).
+- **6 Distance Metrics**: Euclidean, Manhattan, Chebyshev, Minkowski, Canberra, and Bray-Curtis, all supported on every backend.
+- **Raster I/O**: Downsampling for large files, LZW-compressed GeoTIFF output, and multi-band support.
+- **Desktop GUI**: Three-panel layout, light/dark themes, splash screen, and full-screen mode for a better experience.
+- **Headless API**: Zero-Qt core modules usable in scripts, notebooks, and HPC clusters.
 
 ---
 
@@ -101,16 +101,16 @@ $$Q = \sum_{i=1}^{N} \sum_{j=1}^{N} d_{ij} \cdot p_i \cdot p_j$$
 
 Where $N$ = total number of pixels within a window, $p_i$ and $p_j$ = relative abundances for pixel $i$ and $j$, and $d_{ij}$ = pairwise spectral distance between pixel $i$ and $j$.
 
-Instead of comparing every pair of pixels directly, PaRaVis first groups pixels with **identical spectral profiles**, then computes distances between unique profiles weighted by how many pixels share each profile. This is far more efficient — a 15×15 window (225 pixels) may have only 10 unique spectral profiles, requiring just $\binom{10}{2}=45$ distance calculations instead of $\binom{225}{2}=25{,}200$.
+Instead of comparing every pair of pixels directly, PaRaVis first groups pixels with **identical spectral profiles**, then computes distances between unique profiles weighted by how many pixels share each profile. This is far more efficient: a 15×15 window (225 pixels) may have only 10 unique spectral profiles, requiring just $\binom{10}{2}=45$ distance calculations instead of $\binom{225}{2}=25{,}200$.
 
 ### The `simplify` Parameter
 
-The **`simplify`** parameter (range **0–6**, default **2**) controls how precisely pixel values must match before being considered spectrally identical. Before grouping, all values are **truncated** (not rounded) to the given number of decimal places — so `0.1234567` becomes `0.12` at `simplify=2`. Two pixels are only grouped together if their spectral profiles match exactly after truncation.
+The **`simplify`** parameter (range **0–6**, default **2**) controls how precisely pixel values must match before being considered spectrally identical. Before grouping, all values are **truncated** (not rounded) to the given number of decimal places, so `0.1234567` becomes `0.12` at `simplify=2`. Two pixels are only grouped together if their spectral profiles match exactly after truncation.
 
-- **0** — no truncation; keeps full float32 precision → **most** distinct spectral profiles, **slowest** computation, finest detail
-- **1** — most aggressive truncation → **fewest** distinct profiles, **fastest** computation, coarsest diversity map
-- **2 (default)** — good balance for most analyses
-- **3–6** — progressively more decimal places retained → more distinct profiles detected, richer detail, slower computation
+- **0**: no truncation; keeps full float32 precision, giving the **most** distinct spectral profiles, the **slowest** computation, and the finest detail
+- **1**: most aggressive truncation, giving the **fewest** distinct profiles, the **fastest** computation, and the coarsest diversity map
+- **2 (default)**: good balance for most analyses
+- **3–6**: progressively more decimal places retained, giving more distinct profiles, richer detail, and slower computation
 
 Six distance metrics are available: Euclidean, Manhattan, Chebyshev, Minkowski (tunable $p$), Canberra, and Bray-Curtis. All work on every backend.
 
@@ -186,7 +186,7 @@ Light/dark themes, keyboard shortcuts, persistent settings.
 
 | <img src="https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/linux.svg" width="16"> Linux | <img src="https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/windows.svg" width="16"> Windows | <img src="https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/apple.svg" width="16"> macOS |
 |-------|---------|-------|
-| ✅ Full support (GUI, CPU, GPU). Requires `libgdal-dev` for raster I/O. | ✅ Full support (GUI, CPU, GPU). Self-contained pip wheels. | ✅ GUI, CPU, and headless API work. GPU acceleration not available (no NVIDIA GPUs) — falls back to CPU. Self-contained pip wheels. |
+| ✅ Full support (GUI, CPU, GPU). Requires `libgdal-dev` for raster I/O. | ✅ Full support (GUI, CPU, GPU). Self-contained pip wheels. | ✅ GUI, CPU, and headless API work. GPU acceleration not available (no NVIDIA GPUs), so it falls back to CPU. Self-contained pip wheels. |
 
 > [!NOTE]
 > GPU acceleration requires the NVIDIA CUDA Toolkit. On Linux/Windows, install the matching CuPy variant (e.g. `cupy-cuda12x`).
