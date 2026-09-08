@@ -10,10 +10,15 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/paravis?style=flat-square&logo=pypi)](https://pypi.org/project/paravis/)
 [![Python versions](https://img.shields.io/pypi/pyversions/paravis?style=flat-square&logo=python)](https://pypi.org/project/paravis/)
+[![Downloads](https://img.shields.io/pypi/dm/paravis?style=flat-square&logo=pypi)](https://pypi.org/project/paravis/)
 [![License](https://img.shields.io/pypi/l/paravis?style=flat-square)](https://github.com/mmadrz/paravis/blob/main/LICENSE)
 [![Tests](https://img.shields.io/badge/tests-505%20passed-success?style=flat-square)](https://github.com/mmadrz/paravis/actions)
 [![Coverage](https://codecov.io/gh/mmadrz/PaRaVis/branch/main/graph/badge.svg)](https://codecov.io/gh/mmadrz/PaRaVis)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20windows%20%7C%20macOS-lightgrey?style=flat-square)](https://github.com/mmadrz/paravis)
+[![Stars](https://img.shields.io/github/stars/mmadrz/PaRaVis?style=flat-square&logo=github)](https://github.com/mmadrz/PaRaVis)
+[![Last commit](https://img.shields.io/github/last-commit/mmadrz/PaRaVis?style=flat-square)](https://github.com/mmadrz/PaRaVis)
+[![Maintenance](https://img.shields.io/badge/maintenance-active-brightgreen?style=flat-square)](https://github.com/mmadrz/PaRaVis)
+[![DOI](https://img.shields.io/badge/DOI-10.1016%2Fj.ecoinf.2024.102739-blue?style=flat-square)](https://doi.org/10.1016/j.ecoinf.2024.102739)
 
 </div>
 
