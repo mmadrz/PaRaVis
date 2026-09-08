@@ -19,6 +19,10 @@
 
 A cross-platform Python library and desktop GUI for **spectral index computation**, **Rao's Q diversity analysis**, and **raster data visualization**. PaRaVis combines a professional PySide6 interface with a lightweight headless API — equally at home in interactive exploration and automated HPC batch pipelines.
 
+<p align="center">
+  <img src="docs/paravis_pipeline.svg" alt="PaRaVis Processing Pipeline" width="1000">
+</p>
+
 ---
 
 ## Features
