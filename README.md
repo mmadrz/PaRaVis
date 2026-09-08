@@ -6,6 +6,10 @@
   <img src="https://i.ibb.co/h9H37w4/LOGO.png" alt="PaRaVis Logo" width="1200">
 </p>
 
+<p align="center">
+  <img src="docs/paravis_pipeline.svg" alt="PaRaVis Processing Pipeline" width="1000">
+</p>
+
 <div align="center">
 
 [![PyPI version](https://img.shields.io/pypi/v/paravis?style=flat-square&logo=pypi)](https://pypi.org/project/paravis/)
@@ -21,10 +25,6 @@
 [![DOI](https://img.shields.io/badge/DOI-10.1016%2Fj.ecoinf.2024.102739-blue?style=flat-square)](https://doi.org/10.1016/j.ecoinf.2024.102739)
 
 </div>
-
-<p align="center">
-  <img src="docs/paravis_pipeline.svg" alt="PaRaVis Processing Pipeline" width="1000">
-</p>
 
 A cross-platform Python library and desktop GUI for **spectral index computation**, **Rao's Q diversity analysis**, and **raster data visualization**. PaRaVis combines a professional PySide6 interface with a lightweight headless API — equally at home in interactive exploration and automated HPC batch pipelines.
 
