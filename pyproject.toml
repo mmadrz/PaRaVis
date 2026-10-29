@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta:__legacy__"
 
 [project]
 name = "paravis"
-version = "2.0.0"
+version = "2.0.1"
 description = "Parallel Rao's Q Visualization and Analysis — Spectral indices, Rao's Q diversity, raster visualization"
 readme = "README.md"
 license = {text = "MIT"}
